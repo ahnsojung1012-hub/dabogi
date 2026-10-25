@@ -12,7 +12,7 @@
 :root{
   --paper:#f3f5f7; --sheet:#ffffff; --grid:#e4e9ee; --ink:#14202e; --muted:#566373;
   --line:#d3dbe4; --blue:#1d5b78; --blue-soft:#e2eef3; --red:#c23b2c; --red-soft:#fbe9e6;
-  --green:#257a4c; --green-soft:#e2f2e8; --hi:#f4c84a; --band:#13283b; --band-ink:#f3f5f7;
+  --green:#257a4c; --green-soft:#e2f2e8; --hi:#f4c84a; --band:#13283b; --band-ink:#f3f5f7; --dot:#c9d2dc;
   --f-display:"Gowun Batang","Nanum Myeongjo","AppleMyungjo",serif;
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -21,10 +21,12 @@
 @media (prefers-color-scheme: dark){:root{
   --paper:#0e161f; --sheet:#15202b; --grid:#18242f; --ink:#e5ecf2; --muted:#93a2b2;
   --line:#283746; --blue:#72b4d3; --blue-soft:#163040; --red:#ff8a78; --red-soft:#3a201c;
-  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --band:#1c3850; --band-ink:#eef2f6; color-scheme:dark}}
+  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --band:#1c3850; --band-ink:#eef2f6; --dot:#253443; color-scheme:dark}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;min-height:100%;
+  background-color:var(--paper);
+  background-image:radial-gradient(ellipse 120% 420px at 50% -60px,color-mix(in srgb,var(--band) 16%,transparent),transparent 70%),radial-gradient(circle,var(--dot) 1.2px,transparent 1.4px);
+  background-size:100% 100%,22px 22px;background-attachment:scroll,scroll;background-repeat:no-repeat,repeat}
 .wrap{max-width:1100px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
 header.top{position:relative;overflow:hidden;background:var(--band);color:var(--band-ink);border-radius:16px;padding:22px}
 header.top>*{position:relative}

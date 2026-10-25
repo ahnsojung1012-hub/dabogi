@@ -7,7 +7,7 @@
 :root{
   --paper:#f3f5f7; --sheet:#ffffff; --grid:#e4e9ee; --ink:#14202e; --muted:#566373;
   --line:#d3dbe4; --blue:#1d5b78; --blue-soft:#e2eef3; --red:#c23b2c; --red-soft:#fbe9e6;
-  --green:#257a4c; --green-soft:#e2f2e8; --hi:#f4c84a; --hi-soft:#fdf3d2; --band:#13283b; --band-ink:#f3f5f7; --margin:#e9a29a;
+  --green:#257a4c; --green-soft:#e2f2e8; --hi:#f4c84a; --hi-soft:#fdf3d2; --band:#13283b; --band-ink:#f3f5f7; --margin:#e9a29a; --dot:#c9d2dc;
   --f-display:"Gowun Batang","Nanum Myeongjo","AppleMyungjo",serif;
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -15,15 +15,16 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --paper:#0e161f; --sheet:#15202b; --grid:#18242f; --ink:#e5ecf2; --muted:#93a2b2;
   --line:#283746; --blue:#72b4d3; --blue-soft:#163040; --red:#ff8a78; --red-soft:#3a201c;
-  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --hi-soft:#3a3216; --band:#1c3850; --band-ink:#eef2f6; --margin:#6b3a36; color-scheme:dark}}
+  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --hi-soft:#3a3216; --band:#1c3850; --band-ink:#eef2f6; --margin:#6b3a36; --dot:#253443; color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#0e161f; --sheet:#15202b; --grid:#18242f; --ink:#e5ecf2; --muted:#93a2b2;
   --line:#283746; --blue:#72b4d3; --blue-soft:#163040; --red:#ff8a78; --red-soft:#3a201c;
-  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --hi-soft:#3a3216; --band:#1c3850; --band-ink:#eef2f6; --margin:#6b3a36; color-scheme:dark}
+  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --hi-soft:#3a3216; --band:#1c3850; --band-ink:#eef2f6; --margin:#6b3a36; --dot:#253443; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-  background-size:24px 24px}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;min-height:100%;
+  background-color:var(--paper);
+  background-image:radial-gradient(ellipse 120% 420px at 50% -60px,color-mix(in srgb,var(--band) 16%,transparent),transparent 70%),radial-gradient(circle,var(--dot) 1.2px,transparent 1.4px);
+  background-size:100% 100%,22px 22px;background-attachment:scroll,scroll;background-repeat:no-repeat,repeat}
 .wrap{max-width:860px;margin:0 auto;padding-block:20px 64px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   display:flex;flex-direction:column;gap:20px}
@@ -143,6 +144,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .wait{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:9px;background:var(--hi-soft);border:1px solid var(--hi)}
 .wait-t{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)}
 .wait-bar{height:6px;border-radius:99px;background:var(--sheet);overflow:hidden}.wait-bar i{display:block;height:100%;width:0;background:var(--hi);transition:width 1s linear}
+.rules{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:9px;border:1px dashed var(--line);background:var(--paper);font-size:13px;color:var(--muted)}
+.rules strong{color:var(--ink);font-size:14px}
+.rsteps{display:flex;flex-wrap:wrap;gap:4px}
+.rsteps span{display:inline-flex;flex-direction:column;align-items:center;min-width:52px;padding:4px 6px;border-radius:7px;background:var(--sheet);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+.rsteps b{font-family:var(--f-body);font-size:11px;font-weight:500;color:var(--muted)}
 .back{align-self:flex-start}
 @media (prefers-reduced-motion:no-preference){.verdict,.cert{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.98)}to{transform:none}}}
 </style>
@@ -272,7 +278,7 @@ function renderExam(ex){
   const back=h(`<button class="btn ghost small back">← 시험 목록</button>`);back.onclick=()=>{sessEnd();view.exam=null;render()};app.appendChild(back);
   if(!pr.done)sessStart(ex);
   if(pr.done) return renderCert(ex,pr);
-  const lay=h(`<div class="exam-layout"><section class="panel"><h2>${esc(ex.title)}</h2><div class="sheet-imgs"></div></section><aside class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span><span class="hint">${esc(myName())}</span></div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 아래 수식 버튼으로 분수·제곱·루트를 넣어요. 입력칸 아래에 실제 모양이 보여요.</p></aside></div>`);
+  const lay=h(`<div class="exam-layout"><section class="panel"><h2>${esc(ex.title)}</h2><div class="sheet-imgs"></div></section><aside class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span><span class="hint">${esc(myName())}</span></div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><div class="rules" id="rules"><strong>채점 규칙</strong><span>다 맞을 때까지 몇 번이든 채점할 수 있지만, 틀리면 다음 채점까지 기다려야 해요.</span><div class="rsteps">${[1,2,3,4,5].map(n=>`<span><b>${n}차 후</b>${waitMin(n)}분</span>`).join('')}<span><b>그다음</b>5분씩 더</span></div><span>답 하나만 바꿔 보지 말고, 처음부터 다시 풀어서 한 번에 맞히는 게 가장 빨라요.</span></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 아래 수식 버튼으로 분수·제곱·루트를 넣어요. 입력칸 아래에 실제 모양이 보여요.</p></aside></div>`);
   const imgs=lay.querySelector('.sheet-imgs');
   if(ex.images.length) ex.images.forEach((src,i)=>{const im=document.createElement('img');im.src=src;im.alt=`시험지 ${i+1}쪽`;imgs.appendChild(im)});
   else imgs.appendChild(h(`<div class="noimg">시험지는 종이로 받았어요. 종이 시험지를 보고 오른쪽에 답을 적으세요.</div>`));
@@ -302,6 +308,7 @@ function renderExam(ex){
   app.appendChild(lay);
   const gbtn=lay.querySelector('#grade'), vbox=lay.querySelector('#vbox');
   const last=pr.attempts[pr.attempts.length-1];
+  lay.querySelector('#rules').hidden=!!last;
   if(last) showVerdict(ex,pr,vbox,gbtn,grid,last);
   gbtn.onclick=async()=>{
     const blank=pr.answers.findIndex(a=>!norm(a));
@@ -312,7 +319,7 @@ function renderExam(ex){
     logEv(wrong.length?'attempt':'done',ex,{attempt:pr.attempts.length,wrong:wrong.map(i=>qn(ex,i)).join(','),wrongCount:wrong.length,
       extra:wrong.length?'':JSON.stringify({runSec:at.s,startedAt:pr.start,attempts:pr.attempts.map(a=>({t:a.t,s:a.s,w:a.w.map(i=>qn(ex,i))}))})});
     if(!wrong.length){pr.done=Date.now();saveProg();sessEnd();render();scrollTo(0,0);return}
-    pr.checked=[];saveProg();showVerdict(ex,pr,vbox,gbtn,grid,at);
+    pr.checked=[];saveProg();lay.querySelector('#rules').hidden=true;showVerdict(ex,pr,vbox,gbtn,grid,at);
   };
 }
 
@@ -323,7 +330,7 @@ function showVerdict(ex,pr,vbox,gbtn,grid,at){
   pr.checked=pr.checked||[];
   clearInterval(waitTimer);
   const until=at.t+waitMin(pr.attempts.length)*60000;
-  const v=h(`<div class="verdict bad"><div class="big">아직 다 맞지 않았어요</div><p style="margin:0">몇 번이 틀렸는지, 몇 개가 틀렸는지는 알려주지 않아요. 1번부터 끝까지 다시 확인하고 다시 채점하세요.</p><div class="wait" id="wait"><div class="wait-t"></div><div class="wait-bar"><i></i></div><p class="hint" style="margin:0">답을 하나씩 바꿔 보는 대신 다시 풀어 보라고 다음 채점까지 ${waitMin(pr.attempts.length)}분을 기다려요. 채점할수록 기다리는 시간이 늘어나요.</p></div><div class="checks"></div><div class="log"></div></div>`);
+  const v=h(`<div class="verdict bad"><div class="big">아직 다 맞지 않았어요</div><p style="margin:0">몇 번이 틀렸는지, 몇 개가 틀렸는지는 알려주지 않아요. 1번부터 끝까지 다시 확인하고 다시 채점하세요.</p><div class="wait" id="wait"><div class="wait-t"></div><div class="wait-bar"><i></i></div><p class="hint" style="margin:0">이번에는 ${waitMin(pr.attempts.length)}분을 기다려요. <strong>${pr.attempts.length+1}차 채점에서도 틀리면 다음엔 ${waitMin(pr.attempts.length+1)}분</strong>을 기다려야 해요. 기다리는 동안 처음부터 다시 풀어 보세요.</p></div><div class="checks"></div><div class="log"></div></div>`);
   const cw=v.querySelector('.checks');
   CHECKS.forEach((c,i)=>{const l=h(`<label class="check"><input type="checkbox" id="c${i}" ${pr.checked.includes(i)?'checked':''}><span>${c}</span></label>`);
     l.querySelector('input').onchange=e=>{pr.checked=pr.checked.filter(x=>x!==i);if(e.target.checked)pr.checked.push(i);saveProg();upd()};cw.appendChild(l)});
