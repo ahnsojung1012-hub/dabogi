@@ -162,7 +162,7 @@ const LS = 'dabogi.v1';
 let prog = {}; try{ prog = JSON.parse(localStorage.getItem(LS)||'{}')||{} }catch(e){ prog={} }
 const saveProg=()=>{ try{ localStorage.setItem(LS, JSON.stringify(prog)) }catch(e){} };
 let view = {mode:'student', exam:null};
-let canTeach=false, artifactNs=null;
+let canTeach=false, artifactNs=null, autoOpened=false;
 const CHECKS=['문제를 처음부터 다시 소리 내듯 천천히 읽었다','조건(정수, 자연수, 단위, ~가 아닌 것)에 밑줄을 쳤다','계산을 거꾸로 대입해서 맞는지 확인했다','답안지에 옮겨 적은 답이 풀이와 같은지 확인했다'];
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -172,6 +172,11 @@ const hashOf=(salt,i,v)=>sha(salt+':'+i+':'+norm(v));
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
 const h=(html)=>{const d=document.createElement('div');d.innerHTML=html;return d.firstElementChild};
 const myName=()=>prog._me?prog._me.name:(prog._name||'');
+/* 학년: 반 이름 앞 숫자(7→중1, 8→중2, 9→중3). 시험에는 grade(7/8/9)를 붙여 둔다. */
+const gradeOf=c=>{const m=String(c||'').match(/^\s*(\d)/);return m?+m[1]:null};
+const GRADE_LABEL=g=>g>=7&&g<=9?`중${g-6}`:g>=1&&g<=6?`초${g}`:g>=10&&g<=12?`고${g-9}`:'';
+const myGrade=()=>prog._me?gradeOf(prog._me.cls):null;
+const examVisible=ex=>!ex.grade||!myGrade()||ex.grade===myGrade();
 
 /* ---------- study log: only on hosted student pages that carry STATE.endpoint ---------- */
 const EP=STATE.endpoint||'';
@@ -213,6 +218,7 @@ function render(){
     tb.onclick=e=>{const m=e.target.dataset.m;if(m){view={mode:m,exam:null};render()}};head.appendChild(tb)}
   app.appendChild(head);
   if(view.mode==='teacher') return renderTeacher();
+  if(!view.exam&&!autoOpened&&STATE.studentOnly&&!STATE.hub&&STATE.exams.length===1&&prog._me){autoOpened=true;view.exam=STATE.exams[0].id}
   if(view.exam) return renderExam(STATE.exams.find(x=>x.id===view.exam));
   renderHome();
 }
@@ -222,11 +228,17 @@ function renderHome(){
   const p=h(`<section class="panel"><div class="field"><label class="label" for="sname">내 이름</label><input type="text" id="sname" placeholder="예: 김민준" value="${esc(prog._name||'')}"></div></section>`);
   p.querySelector('#sname').oninput=e=>{prog._name=e.target.value;saveProg()};
   app.appendChild(p)}
-  if(!STATE.exams.length){app.appendChild(h(`<div class="panel"><p class="hint">아직 올라온 시험이 없어요. 선생님이 시험을 올리면 여기에 나타나요.</p></div>`));return}
+  const g=myGrade();
+  if(PICK&&!prog._me&&STATE.hub){app.appendChild(h(`<div class="panel"><p class="hint" style="margin:0">반과 이름을 고르면 내 학년 시험이 나와요.</p></div>`));return}
+  const shown=STATE.exams.filter(examVisible);
+  if(!shown.length){app.appendChild(h(`<div class="panel"><p class="hint" style="margin:0">${STATE.exams.length&&g?`지금은 ${GRADE_LABEL(g)} 시험이 없어요. 선생님이 시험을 올리면 여기에 나타나요.`:'아직 올라온 시험이 없어요. 선생님이 시험을 올리면 여기에 나타나요.'}</p></div>`));return}
+  if(g)app.appendChild(h(`<div class="label">${GRADE_LABEL(g)} 시험 ${shown.length}개</div>`));
   const list=h(`<div class="exam-list"></div>`);
-  STATE.exams.forEach(ex=>{const pr=prog[ex.id];const done=pr&&pr.done;
-    const c=h(`<button class="exam-card"><div class="row">${ex.sample?'<span class="chip ex">예시</span>':''}${done?'<span class="chip done">완료</span>':pr&&pr.attempts.length?`<span class="chip">${pr.attempts.length}회 채점함</span>`:''}</div><h3>${esc(ex.title)}</h3><div class="meta">${ex.hashes.length}문항 · 시험지 ${ex.images.length}장</div></button>`);
-    c.onclick=()=>{if(PICK?!prog._me:!norm(prog._name)){toast(PICK?'반과 이름을 먼저 골라 주세요':'이름을 먼저 적어 주세요');const f=document.getElementById('sname')||document.getElementById('wname');f&&f.focus();return}view.exam=ex.id;render();scrollTo(0,0)};list.appendChild(c)});
+  shown.forEach(ex=>{const pr=prog[ex.id];const done=pr&&pr.done;
+    const nq=ex.n||(ex.hashes&&ex.hashes.length)||0,np=ex.np!=null?ex.np:(ex.images||[]).length;
+    const c=h(`<button class="exam-card"><div class="row">${ex.sample?'<span class="chip ex">예시</span>':''}${ex.grade&&!STATE.hub?`<span class="chip ex">${GRADE_LABEL(ex.grade)}</span>`:''}${done?'<span class="chip done">완료</span>':pr&&pr.attempts&&pr.attempts.length?`<span class="chip">${pr.attempts.length}회 채점함</span>`:''}</div><h3>${esc(ex.title)}</h3><div class="meta">${nq}문항 · 시험지 ${np}장</div></button>`);
+    c.onclick=()=>{if(PICK?!prog._me:!norm(prog._name)){toast(PICK?'반과 이름을 먼저 골라 주세요':'이름을 먼저 적어 주세요');const f=document.getElementById('sname')||document.getElementById('wname');f&&f.focus();return}
+      if(ex.link){location.href=ex.link;return}view.exam=ex.id;render();scrollTo(0,0)};list.appendChild(c)});
   app.appendChild(list);
 }
 
@@ -274,6 +286,7 @@ function renderWho(){
 
 function renderExam(ex){
   if(!ex){view.exam=null;return render()}
+  if(!examVisible(ex)){if(STATE.hubLink){location.replace(STATE.hubLink);return}view.exam=null;return render()}
   const pr=prog[ex.id]||(prog[ex.id]={answers:Array(ex.hashes.length).fill(''),attempts:[],start:Date.now(),done:null});
   const back=h(`<button class="btn ghost small back">← 시험 목록</button>`);back.onclick=()=>{sessEnd();view.exam=null;render()};app.appendChild(back);
   if(!pr.done)sessStart(ex);
@@ -431,7 +444,7 @@ JSON만 출력하세요:
 }
 function renderTeacher(){
   const p=h(`<section class="panel"><h2>새 시험 올리기</h2>
-  <div class="field"><label class="label" for="ttitle">시험 이름</label><input type="text" id="ttitle" placeholder="예: 2학년 3반 · 연립방정식 단원평가"></div>
+  <div class="krow"><div class="field" style="flex:3 1 220px"><label class="label" for="ttitle">시험 이름</label><input type="text" id="ttitle" placeholder="예: 2-1 블라인드 2차"></div><div class="field"><label class="label" for="tgrade">학년</label><select id="tgrade"><option value="">모든 학년</option><option value="7">중1</option><option value="8">중2</option><option value="9">중3</option></select></div></div>
   <div class="field"><label class="label" for="timg">시험지 (PDF 또는 사진, 여러 개 가능)</label><input type="file" id="timg" accept="application/pdf,image/*" multiple><span class="hint" id="imgstat"></span><div class="row"><div class="thumbs" id="thumbs"></div><button class="btn ghost small" id="tclear" hidden>시험지 모두 빼기</button></div><span class="hint">PDF는 쪽마다 이미지로 바꿔서 넣어요. AI 분석에는 시험지가 필요해요.</span></div>
   <div class="field keybox"><label class="label" for="tkeyfile">정답지 · 빠른답지 파일 (PDF 또는 사진, 선택)</label><input type="file" id="tkeyfile" accept="application/pdf,image/*" multiple>
     <div class="keypages" id="keypages" hidden></div>
@@ -442,7 +455,7 @@ function renderTeacher(){
   <div class="field"><span class="label">AI 오답 분석</span><div class="row"><button class="btn ghost" id="tan">AI 분석 만들기</button><span class="hint" id="anstat">정답과 사진을 넣은 뒤 눌러요. 1~2분 걸려요.</span></div><div id="anprev"></div></div>
   <div class="row"><button class="btn" id="tsave">시험 올리기</button><span class="hint">정답과 분석은 잠가서 저장해요. 학생은 모든 문제를 맞혀야 분석을 볼 수 있고, 올린 뒤에는 선생님도 정답을 다시 볼 수 없어요.</span></div></section>`);
   const $=s=>p.querySelector(s);
-  $('#ttitle').value=draft.title;$('#tkey').value=draft.key;
+  $('#ttitle').value=draft.title;$('#tgrade').value=draft.grade||'';$('#tgrade').onchange=e=>draft.grade=e.target.value;$('#tkey').value=draft.key;
   const showThumbs=()=>{$('#thumbs').innerHTML=draft.images.map(s=>`<img src="${s}" alt="">`).join('');$('#tclear').hidden=!draft.images.length};
   const showPrev=()=>{const a=draft.analysis;$('#anprev').innerHTML=a?`<div class="tlist">${a.questions.map(q=>`<div class="titem"><div style="min-width:0"><strong>${q.no}번</strong> <span class="hint">${esc(q.concept||'')}</span><div class="hint">예상 오답 ${(q.mistakes||[]).map(m=>esc(m.answer)+' ('+esc(m.type)+')').join(', ')}</div></div></div>`).join('')}</div>`:''};
   const finalTypes=()=>{const k=parseKey(draft.key);return keyTypes(k).map((t,i)=>draft.types[i]||t)};
@@ -513,7 +526,7 @@ function renderTeacher(){
     const bad=alts.findIndex((a,i)=>types[i]!=='sa'&&!a.every(x=>/^[1-5](,[1-5])*$/.test(norm(x))));
     if(bad>=0){toast(`${keyStart(draft.key)+bad}번은 객관식인데 정답이 번호가 아니에요. 정답이나 유형을 고쳐 주세요`);$('#tsave').disabled=false;return}
     const hashes=[];for(let i=0;i<alts.length;i++)hashes.push(await Promise.all(alts[i].map(a=>hashOf(salt,i,a))));
-    const ex={id:'e'+Date.now().toString(36),title:draft.title.trim(),salt,hashes,images:draft.images,start:keyStart(draft.key),types};
+    const ex={id:'e'+Date.now().toString(36),title:draft.title.trim(),salt,hashes,images:draft.images,start:keyStart(draft.key),types,grade:draft.grade?+draft.grade:undefined};
     if(draft.analysis)ex.lock=await lockAnalysis(salt,alts,draft.analysis);
     STATE.exams.unshift(ex);
     if(JSON.stringify(STATE).length>14.5e6){STATE.exams.shift();$('#tsave').disabled=false;toast('저장 공간이 부족해요. 지난 시험을 지우고 다시 올려 주세요');return}
@@ -523,7 +536,7 @@ function renderTeacher(){
   const l=h(`<section class="panel"><h2>올린 시험</h2><div class="tlist"></div></section>`);
   const tl=l.querySelector('.tlist');
   if(!STATE.exams.length)tl.innerHTML='<p class="hint">아직 없어요.</p>';
-  STATE.exams.forEach(ex=>{const it=h(`<div class="titem"><div><strong>${esc(ex.title)}</strong> ${ex.sample?'<span class="chip ex">예시</span>':''} ${ex.lock?'<span class="chip">AI 분석</span>':''}<div class="hint">${ex.hashes.length}문항 · 사진 ${ex.images.length}장</div></div><div class="row"><button class="btn danger small">삭제</button></div></div>`);
+  STATE.exams.forEach(ex=>{const it=h(`<div class="titem"><div><strong>${esc(ex.title)}</strong> ${ex.sample?'<span class="chip ex">예시</span>':''} ${ex.lock?'<span class="chip">AI 분석</span>':''} ${ex.grade?`<span class="chip">${GRADE_LABEL(ex.grade)}</span>`:''}<div class="hint">${ex.hashes.length}문항 · 사진 ${ex.images.length}장</div></div><div class="row"><button class="btn danger small">삭제</button></div></div>`);
     const b=it.querySelector('button');let armed=false;
     b.onclick=async()=>{if(!armed){armed=true;b.textContent='한 번 더 누르면 삭제';setTimeout(()=>{armed=false;b.textContent='삭제'},3000);return}
       const idx=STATE.exams.indexOf(ex);STATE.exams.splice(idx,1);if(!(await save()))STATE.exams.splice(idx,0,ex)};
