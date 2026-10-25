@@ -62,6 +62,13 @@ textarea{min-height:260px;resize:vertical;line-height:1.7}
 .st b{font-weight:700}.st .m{grid-column:1/-1;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .st .t{font-family:var(--f-mono);font-size:12px;color:var(--blue);align-self:center}
 .st.none .t{color:var(--muted)}
+.classbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.cb{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:170px;text-align:left;font:inherit;color:var(--ink);background:var(--sheet);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer}
+.cb b{font-family:var(--f-display);font-size:18px}.cb span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cb:hover{border-color:var(--blue)}
+.cb[aria-pressed="true"]{background:var(--band);color:var(--band-ink);border-color:var(--band);border-top-color:var(--hi)}.cb[aria-pressed="true"] span{color:var(--band-ink);opacity:.8}
+.st.all b{color:var(--blue)}
+.ctable tbody tr{cursor:pointer}.ctable tbody tr:hover,.ctable tbody tr:focus-visible{background:var(--blue-soft)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper)}
 .tile .v{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
@@ -165,30 +172,53 @@ function studentRecord(c,n){
 function renderMain(){
   app.innerHTML=header();
   const classes=[...new Set(DATA.roster.map(r=>r.cls))];
+  if(!classes.includes(clsF))clsF=classes[0]||'';
+  if(sel&&sel.split('|')[0]!==clsF)sel=null;
   const f=h(`<section class="panel"><div class="filters">
     <div class="field"><label class="label" for="ffrom">기간 시작</label><input type="date" id="ffrom" value="${from}"></div>
     <div class="field"><label class="label" for="fto">기간 끝</label><input type="date" id="fto" value="${to}"></div>
-    <div class="field"><label class="label" for="fcls">반</label><select id="fcls"><option value="">전체 반</option>${classes.map(c=>`<option ${c===clsF?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
     <div class="row" style="justify-content:flex-end"><button class="btn ghost" id="refresh">새로 불러오기</button><button class="btn ghost" id="logout">잠그기</button></div></div>
     <span class="hint">시험 기간에 맞춰 기간을 바꾸면 그 기간의 기록만 계산해요. 마지막 불러온 시각 ${hm(Date.now())}</span></section>`);
   f.querySelector('#ffrom').onchange=e=>{from=e.target.value;ls.set('dabogi.t.from',from);renderMain()};
   f.querySelector('#fto').onchange=e=>{to=e.target.value;ls.set('dabogi.t.to',to);renderMain()};
-  f.querySelector('#fcls').onchange=e=>{clsF=e.target.value;ls.set('dabogi.t.cls',clsF);renderMain()};
   f.querySelector('#refresh').onclick=()=>load(DATA.pw,!!ls.get('dabogi.t.pw',''));
   f.querySelector('#logout').onclick=()=>{ls.del('dabogi.t.pw');DATA=null;renderLogin('잠갔어요.')};
   app.appendChild(f);
-  const lay=h(`<div class="layout"><aside class="panel"><div class="label">학생 (${DATA.roster.filter(r=>!clsF||r.cls===clsF).length}명)</div><div class="roster"></div></aside><section class="panel" id="detail"></section></div>`);
+  if(!classes.length){app.appendChild(h(`<section class="panel"><div class="empty">스프레드시트 명단 시트에 학생이 없어요. A열에 반, B열에 이름을 적어 주세요.</div></section>`));return}
+  /* 1단계: 반 고르기 */
+  const recs={};DATA.roster.forEach(r=>{recs[key(r.cls,r.name)]=studentRecord(r.cls,r.name)});
+  const cb=h(`<nav class="classbar" aria-label="반 선택"></nav>`);
+  classes.forEach(c=>{const ms=DATA.roster.filter(r=>r.cls===c),act=ms.filter(r=>recs[key(r.cls,r.name)].rows.length).length;
+    const tot=ms.reduce((a,r)=>a+recs[key(r.cls,r.name)].total,0);
+    const b=h(`<button class="cb" aria-pressed="${c===clsF}"><b>${esc(c)}</b><span>${ms.length}명 · 기록 있는 학생 ${act}명</span><span>총 ${dur(tot)}</span></button>`);
+    b.onclick=()=>{clsF=c;ls.set('dabogi.t.cls',c);sel=null;renderMain()};cb.appendChild(b)});
+  app.appendChild(cb);
+  /* 2단계: 그 반 학생 고르기 */
+  const mem=DATA.roster.filter(r=>r.cls===clsF);
+  const lay=h(`<div class="layout"><aside class="panel"><div class="label">${esc(clsF)} 학생 ${mem.length}명</div><div class="roster"></div></aside><section class="panel" id="detail"></section></div>`);
   const ro=lay.querySelector('.roster');
-  const recs={};
-  classes.filter(c=>!clsF||c===clsF).forEach(c=>{ro.appendChild(h(`<div class="cls">${esc(c)}</div>`));
-    DATA.roster.filter(r=>r.cls===c).forEach(r=>{const rec=recs[key(r.cls,r.name)]=studentRecord(r.cls,r.name);
-      const done=rec.exams.filter(e=>e.done).length;
-      const b=h(`<button class="st ${rec.rows.length?'':'none'}" aria-current="${sel===key(r.cls,r.name)}"><b>${esc(r.name)}</b><span class="t">${rec.rows.length?dur(rec.total):'기록 없음'}</span><span class="m">${rec.rows.length?`${Object.keys(rec.days).length}일 · 완료 ${done}개 · 마지막 ${md(rec.last)}`:'이 기간에 푼 시험이 없어요'}</span></button>`);
-      b.onclick=()=>{sel=key(r.cls,r.name);renderMain();if(window.innerWidth<820)document.getElementById('detail').scrollIntoView({behavior:'smooth'})};ro.appendChild(b)})});
+  const ov=h(`<button class="st all" aria-current="${!sel}"><b>반 전체 보기</b><span class="t"></span><span class="m">학생별 공부 시간을 한눈에 봐요</span></button>`);
+  ov.onclick=()=>{sel=null;renderMain()};ro.appendChild(ov);
+  mem.forEach(r=>{const rec=recs[key(r.cls,r.name)];const done=rec.exams.filter(e=>e.done).length;
+    const b=h(`<button class="st ${rec.rows.length?'':'none'}" aria-current="${sel===key(r.cls,r.name)}"><b>${esc(r.name)}</b><span class="t">${rec.rows.length?dur(rec.total):'기록 없음'}</span><span class="m">${rec.rows.length?`${Object.keys(rec.days).length}일 · 완료 ${done}개 · 마지막 ${md(rec.last)}`:'이 기간에 푼 시험이 없어요'}</span></button>`);
+    b.onclick=()=>{sel=key(r.cls,r.name);renderMain();if(window.innerWidth<820)document.getElementById('detail').scrollIntoView({behavior:'smooth'})};ro.appendChild(b)});
   app.appendChild(lay);
   const det=lay.querySelector('#detail');
-  if(!sel||!recs[sel]){det.innerHTML=`<div class="empty">왼쪽에서 학생 이름을 누르면 학습 기록이 나와요.${DATA.rows.length?'':'<br>아직 저장된 기록이 없어요. 학생이 시험 링크에서 채점하면 여기에 쌓여요.'}</div>`;return}
+  if(!sel||!recs[sel]){renderClass(det,clsF,mem,recs);return}
   const [c,n]=sel.split('|');renderDetail(det,c,n,recs[sel]);
+  const back=h(`<button class="btn ghost" style="align-self:flex-start">← ${esc(c)} 전체 보기</button>`);back.onclick=()=>{sel=null;renderMain()};det.prepend(back);
+}
+
+function renderClass(det,c,mem,recs){
+  const rows=mem.map(r=>({r,rec:recs[key(r.cls,r.name)]}));
+  const act=rows.filter(x=>x.rec.rows.length);
+  const tot=act.reduce((a,x)=>a+x.rec.total,0);
+  det.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(c)}</h2><span class="hint">${md(from)} ~ ${md(to)}</span></div>
+  <div class="tiles"><div class="tile"><div class="label">학생</div><div class="v">${mem.length}명</div></div><div class="tile"><div class="label">기록 있는 학생</div><div class="v">${act.length}명</div></div><div class="tile"><div class="label">1인 평균 푼 시간</div><div class="v">${act.length?dur(tot/act.length):'-'}</div></div><div class="tile"><div class="label">반 전체 완료</div><div class="v">${rows.reduce((a,x)=>a+x.rec.exams.filter(e=>e.done).length,0)}개</div></div></div>
+  <div class="tbl"><table class="ctable"><thead><tr><th>이름</th><th>공부한 날</th><th>총 푼 시간</th><th>완료 / 시작</th><th>평균 채점</th><th>마지막 공부</th></tr></thead><tbody>${rows.map(({r,rec})=>{const d=rec.exams.filter(e=>e.done);const avg=d.length?(d.reduce((a,e)=>a+e.attempts,0)/d.length).toFixed(1)+'회':'-';
+    return `<tr data-k="${esc(key(r.cls,r.name))}" tabindex="0"><td><b>${esc(r.name)}</b></td><td>${rec.rows.length?Object.keys(rec.days).length+'일':'-'}</td><td>${rec.rows.length?dur(rec.total):'<span class="hint">기록 없음</span>'}</td><td>${d.length} / ${rec.exams.length}</td><td>${avg}</td><td>${rec.last?md(rec.last)+' '+hm(rec.last):'-'}</td></tr>`}).join('')}</tbody></table></div>
+  <p class="hint" style="margin:0">학생 이름을 누르면 그 학생의 자세한 기록과 학부모 요약문이 나와요.</p>`;
+  det.querySelectorAll('tr[data-k]').forEach(tr=>{const go=()=>{sel=tr.dataset.k;renderMain()};tr.onclick=go;tr.onkeydown=e=>{if(e.key==='Enter')go()}});
 }
 
 function dayStrip(rec){const out=[];const a=new Date(from+'T00:00'),b=new Date(to+'T00:00');
