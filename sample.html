@@ -125,6 +125,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .kp{flex:none;display:flex;flex-direction:column;gap:4px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--paper);font:inherit;font-size:12px;color:var(--muted);cursor:pointer}
 .kp:hover{border-color:var(--blue)}.kp img{width:84px;height:112px;object-fit:cover;object-position:top;border-radius:4px;background:#fff}
 #kcompare{display:flex;flex-direction:column;gap:8px;margin-top:6px}.kimg{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
+.ktypes{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.ktypes .lbl{width:100%;font-size:12px;color:var(--muted)}
+.kt{display:flex;flex-direction:column;align-items:center;min-width:48px;padding:4px 6px;border-radius:7px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);font:inherit;font-weight:700;font-size:13px;cursor:pointer;line-height:1.2}
+.kt small{font-weight:500;font-size:10px;color:var(--muted)}.kt.mc{border-color:var(--blue)}.kt.mc small{color:var(--blue)}.kt.mcm{border-color:var(--blue);background:var(--blue-soft)}.kt.mcm small{color:var(--blue)}
 .back{align-self:flex-start}
 @media (prefers-reduced-motion:no-preference){.verdict,.cert{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.98)}to{transform:none}}}
 </style>
@@ -176,7 +179,10 @@ const CIRC=['','①','②','③','④','⑤'];
 /* Question types: stored by the teacher page; for older exams, a pair of identical hashes means "③|3" (multiple choice). */
 function qtypes(ex){if(Array.isArray(ex.types)&&ex.types.length===ex.hashes.length)return ex.types;
   return ex.hashes.map(h=>h.length>=2&&h.every(x=>x===h[0])?'mc':'sa')}
-function keyTypes(key){return key.map(k=>/[①②③④⑤]/.test(k)?(/[①②③④⑤]\s*,/.test(k)?'mcm':'mc'):'sa')}
+function keyTypes(key){return key.map(k=>{const alt=k.split('|')[0];const c=(alt.match(/[①②③④⑤]/g)||[]).length;return c>=2?'mcm':c===1||/^\s*[1-5]\s*\|\s*[①②③④⑤]\s*$/.test(k)?'mc':'sa'})}
+/* Multiple-answer choice keys are stored as sorted digits "2,4", which is what the student's buttons produce */
+function mcmCanon(a){const d=[...new Set((String(a).normalize('NFKC').match(/[1-5]/g)||[]))].sort();return d.join(',')}
+const TYPE_LABEL={sa:'주관식',mc:'객관식',mcm:'복수 정답'};
 /* [label, text inserted, aria name, caret steps back] */
 const MKEYS=[['a/b','/','분수'],['x²','^2','제곱'],['xⁿ','^','거듭제곱'],['√','√','루트'],['( )','()','괄호',1],['−','-','빼기'],['π','π','파이'],['±','±','플러스마이너스'],['x','x','x'],['y','y','y'],['a','a','a'],['≤','≤','작거나 같다'],['≥','≥','크거나 같다'],['°','°','도'],[',',',','쉼표'],['⌫','⌫','지우기']];
 function mathInner(t){return t.replace(/√\(([^()]*)\)/g,'√<span class="rt">$1</span>').replace(/√([0-9a-zπ.]+)/gi,'√<span class="rt">$1</span>')
@@ -309,7 +315,7 @@ function renderCert(ex,pr){
 }
 
 /* ---------- teacher ---------- */
-let draft={title:'',key:'',images:[],analysis:null};
+let draft={title:'',key:'',images:[],analysis:null,types:{}};
 function keyStart(t){const m=String(t||'').trim().match(/^(\d+)\s*[.):\]]/);return m?+m[1]:1}
 function parseKey(t){return t.split('\n').map(l=>l.replace(/^\s*\d+\s*[.):\]]\s*/,'').trim()).filter(Boolean)}
 function dataUrlToBlob(u){const [m,d]=u.split(',');const type=m.match(/data:([^;]+)/)[1];return new Blob([unb64(d)],{type})}
@@ -335,18 +341,21 @@ function renderTeacher(){
     <div class="krow" id="kopts" hidden><div class="field"><label class="label" for="kpage">읽을 쪽</label><input type="text" id="kpage" placeholder="예: 3 또는 3-4"></div><div class="field"><label class="label" for="krange">문항 번호</label><input type="text" id="krange" placeholder="예: 1-25"></div><div class="field" style="flex:2 1 200px"><label class="label" for="kunit">단원 이름 (여러 단원이 있을 때)</label><input type="text" id="kunit" placeholder="예: 2. 일차방정식의 활용"></div></div>
     <div class="row" id="kgo" hidden><button class="btn ghost" id="kread">AI로 정답 읽기</button></div>
     <span class="hint" id="keystat">빠른답지는 쪽과 문항 번호를 지정하면 훨씬 정확해요. 읽은 정답은 꼭 확인하세요.</span></div>
-  <div class="field"><label class="label" for="tkey">정답 (한 줄에 한 문제)</label><textarea id="tkey" placeholder="1. 3&#10;2. -2&#10;3. 1/2|0.5&#10;4. ③|3"></textarea><span class="hint" id="kcount"></span><div id="kcompare" hidden></div></div>
+  <div class="field"><label class="label" for="tkey">정답 (한 줄에 한 문제)</label><textarea id="tkey" placeholder="1. 3&#10;2. -2&#10;3. 1/2|0.5&#10;4. ③|3"></textarea><span class="hint" id="kcount"></span><div class="ktypes" id="ktypes" hidden></div><div id="kcompare" hidden></div></div>
   <div class="field"><span class="label">AI 오답 분석</span><div class="row"><button class="btn ghost" id="tan">AI 분석 만들기</button><span class="hint" id="anstat">정답과 사진을 넣은 뒤 눌러요. 1~2분 걸려요.</span></div><div id="anprev"></div></div>
   <div class="row"><button class="btn" id="tsave">시험 올리기</button><span class="hint">정답과 분석은 잠가서 저장해요. 학생은 모든 문제를 맞혀야 분석을 볼 수 있고, 올린 뒤에는 선생님도 정답을 다시 볼 수 없어요.</span></div></section>`);
   const $=s=>p.querySelector(s);
   $('#ttitle').value=draft.title;$('#tkey').value=draft.key;
   const showThumbs=()=>{$('#thumbs').innerHTML=draft.images.map(s=>`<img src="${s}" alt="">`).join('');$('#tclear').hidden=!draft.images.length};
   const showPrev=()=>{const a=draft.analysis;$('#anprev').innerHTML=a?`<div class="tlist">${a.questions.map(q=>`<div class="titem"><div style="min-width:0"><strong>${q.no}번</strong> <span class="hint">${esc(q.concept||'')}</span><div class="hint">예상 오답 ${(q.mistakes||[]).map(m=>esc(m.answer)+' ('+esc(m.type)+')').join(', ')}</div></div></div>`).join('')}</div>`:''};
-  const cnt=()=>{const k=parseKey(draft.key),n=k.length,s0=keyStart(draft.key),t=keyTypes(k),m=t.filter(x=>x!=='sa').length;$('#kcount').textContent=(n?`${s0}~${s0+n-1}번 ${n}문항 인식됨 (객관식 ${m} · 주관식 ${n-m}) · `:'')+'객관식은 ③처럼 동그라미 번호로 적어야 학생 화면에 번호 버튼이 나와요. 정답이 여러 개면 | 로 나눠요 (예: 1/2|0.5).'};
+  const finalTypes=()=>{const k=parseKey(draft.key);return keyTypes(k).map((t,i)=>draft.types[i]||t)};
+  const cnt=()=>{const k=parseKey(draft.key),n=k.length,s0=keyStart(draft.key),t=finalTypes(),m=t.filter(x=>x!=='sa').length;
+    const kt=$('#ktypes');kt.hidden=!n;kt.innerHTML=n?`<span class="lbl">문항 유형 · 눌러서 바꿔요 (주관식 → 객관식 → 복수 정답)</span>`+t.map((x,i)=>`<button type="button" class="kt ${x}" data-i="${i}">${s0+i}<small>${TYPE_LABEL[x]}</small></button>`).join(''):'';$('#kcount').textContent=(n?`${s0}~${s0+n-1}번 ${n}문항 인식됨 (객관식 ${m} · 주관식 ${n-m}) · `:'')+'③처럼 동그라미 번호로 적으면 객관식으로, ②,④처럼 두 개 이상이면 복수 정답으로 알아봐요. 틀리게 분류되면 아래에서 눌러 바꿔요. 같은 답의 다른 표기는 | 로 나눠요 (예: 1/2|0.5).'};
   const invalidate=()=>{if(draft.analysis){draft.analysis=null;showPrev();$('#anstat').textContent='정답이나 사진이 바뀌어서 분석을 다시 만들어야 해요.'}};
   showThumbs();showPrev();cnt();if(draft.analysis)$('#anstat').textContent=`${draft.analysis.questions.length}문항 분석 완료. 아래에서 확인하고 올리세요.`;
   $('#ttitle').oninput=e=>draft.title=e.target.value;
   $('#tkey').oninput=e=>{draft.key=e.target.value;cnt();invalidate()};
+  $('#ktypes').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i;const cur=finalTypes()[i];const nx={sa:'mc',mc:'mcm',mcm:'sa'}[cur];draft.types[i]=nx;cnt()};
   $('#timg').onchange=async e=>{const fs=[...e.target.files];e.target.value='';const st=$('#imgstat');
     try{for(const f of fs){if(isPdf(f)){const pages=await pdfToImages(f,(i,n)=>st.textContent=`${f.name} 변환 중… ${i}/${n}쪽`);draft.images.push(...pages)}else draft.images.push(await shrink(f))}
       st.textContent=`시험지 ${draft.images.length}쪽 · 약 ${mb(draft.images)}MB`}
@@ -402,13 +411,16 @@ function renderTeacher(){
     if(unsure>=0){toast(`${unsure+1}번에 "확인 필요"가 남아 있어요. 원본을 보고 고친 뒤 올려 주세요`);return}
     $('#tsave').disabled=true;
     const salt=Math.random().toString(36).slice(2,10);
-    const alts=key.map(k=>k.split('|').filter(s=>norm(s)));
+    const types=finalTypes();
+    const alts=key.map((k,i)=>types[i]==='mcm'?[mcmCanon(k.split('|')[0])]:types[i]==='mc'?[...new Set(k.split('|').map(x=>(x.normalize('NFKC').match(/[1-5]/)||[x])[0]))]:k.split('|').filter(s=>norm(s)));
+    const bad=alts.findIndex((a,i)=>types[i]!=='sa'&&!a.every(x=>/^[1-5](,[1-5])*$/.test(norm(x))));
+    if(bad>=0){toast(`${keyStart(draft.key)+bad}번은 객관식인데 정답이 번호가 아니에요. 정답이나 유형을 고쳐 주세요`);$('#tsave').disabled=false;return}
     const hashes=[];for(let i=0;i<alts.length;i++)hashes.push(await Promise.all(alts[i].map(a=>hashOf(salt,i,a))));
-    const ex={id:'e'+Date.now().toString(36),title:draft.title.trim(),salt,hashes,images:draft.images,start:keyStart(draft.key),types:keyTypes(key)};
+    const ex={id:'e'+Date.now().toString(36),title:draft.title.trim(),salt,hashes,images:draft.images,start:keyStart(draft.key),types};
     if(draft.analysis)ex.lock=await lockAnalysis(salt,alts,draft.analysis);
     STATE.exams.unshift(ex);
     if(JSON.stringify(STATE).length>14.5e6){STATE.exams.shift();$('#tsave').disabled=false;toast('저장 공간이 부족해요. 지난 시험을 지우고 다시 올려 주세요');return}
-    if(await save()){draft={title:'',key:'',images:[],analysis:null};toast('올렸어요. 학생들에게 이 링크를 보내 주세요')}else{STATE.exams.shift();$('#tsave').disabled=false}
+    if(await save()){draft={title:'',key:'',images:[],analysis:null,types:{}};toast('올렸어요. 학생들에게 이 링크를 보내 주세요')}else{STATE.exams.shift();$('#tsave').disabled=false}
   };
   app.appendChild(p);
   const l=h(`<section class="panel"><h2>올린 시험</h2><div class="tlist"></div></section>`);
