@@ -7,6 +7,12 @@
 2. `node tools/make_student.js state.json --list` 로 시험 id를 확인한다.
 3. `node tools/make_student.js state.json <시험id> <영문-파일이름>.html` 로 학생용 페이지를 만든다. 파일 이름은 짧은 영문/숫자(예: 2-3-linear-eq.html).
 4. 커밋하고 main에 푸시하면 1~2분 뒤 `https://ahnsojung1012-hub.github.io/dabogi/<파일이름>.html` 에서 열린다.
-5. 시험을 지울 때는 해당 html 파일을 삭제하고 푸시한다.
+5. `tools/pages.json`에 `"파일이름.html": "시험id"`를 추가한다. 시험을 지울 때는 html 파일과 pages.json 항목을 지우고 푸시한다.
+6. 템플릿이 바뀌면 `sh tools/build_all.sh state.json`으로 모든 학생 페이지와 teacher.html을 다시 만든다. 링크 끝에 ?v=숫자를 붙여 캐시를 건너뛰게 안내한다.
+
+## 학습 기록 (Google 스프레드시트)
+- `apps-script/Code.gs`를 선생님 스프레드시트의 Apps Script에 붙여 넣고 웹 앱(실행: 나, 액세스: 모든 사용자)으로 배포한다.
+- 배포 주소(…/exec)를 `tools/config.json`의 `endpoint`에 넣고 build_all.sh를 실행하면 학생 페이지가 기록을 보내고, teacher.html(선생님 기록 페이지)이 비밀번호(설정 시트 B1)로 기록을 불러온다.
+- 학생은 명단 시트(A열 반, B열 이름)에 있는 이름으로만 기록할 수 있다.
 
 학생용 페이지에는 정답이 해시로, AI 오답 분석은 모든 정답으로만 풀리는 암호로 들어 있다. 시험지 이미지는 공개된다.

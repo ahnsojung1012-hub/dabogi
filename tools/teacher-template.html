@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>다시보기 학습 기록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: roster rail on the left, one student's study record on the right; stacks on phones. */
+:root{
+  --paper:#f6f8fb; --sheet:#ffffff; --grid:#e3e9f2; --ink:#1d2433; --muted:#5d6a80;
+  --line:#cfd8e6; --blue:#2554c7; --blue-soft:#e6edfc; --red:#c8322a; --red-soft:#fbe9e7;
+  --green:#1f7a4d; --green-soft:#e3f4ea;
+  --f-display:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --paper:#12161f; --sheet:#1a202c; --grid:#1f2633; --ink:#e7ebf3; --muted:#9aa6bb;
+  --line:#2e3746; --blue:#7fa2ff; --blue-soft:#1d2a4a; --red:#ff7b70; --red-soft:#3a1f1e;
+  --green:#5fd39a; --green-soft:#183326; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+.wrap{max-width:1100px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--f-display);font-weight:400;font-size:32px;line-height:1.1;margin:0}h1 em{font-style:normal;color:var(--red)}
+h2{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0}
+h3{font-size:15px;margin:0}
+.sub{color:var(--muted);margin:4px 0 0}
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.label{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.hint{font-size:13px;color:var(--muted)}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:260px;resize:vertical;line-height:1.7}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-weight:700;border-radius:9px;padding:9px 16px;border:1px solid var(--blue);background:var(--blue);color:var(--sheet);cursor:pointer}
+.btn.ghost{background:none;color:var(--blue)}.btn:disabled{opacity:.4}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr)}}
+.roster{display:flex;flex-direction:column;gap:2px;max-height:70vh;overflow-y:auto}
+.cls{font-size:12px;font-weight:700;color:var(--muted);padding:10px 8px 4px;letter-spacing:.04em}
+.st{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;font:inherit;color:inherit;background:none;border:1px solid transparent;border-radius:8px;padding:7px 9px;cursor:pointer}
+.st:hover{background:var(--paper)}.st[aria-current="true"]{background:var(--blue-soft);border-color:var(--blue)}
+.st b{font-weight:700}.st .m{grid-column:1/-1;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.st .t{font-family:var(--f-mono);font-size:12px;color:var(--blue);align-self:center}
+.st.none .t{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper)}
+.tile .v{font-family:var(--f-display);font-size:26px;line-height:1.2;font-variant-numeric:tabular-nums}
+.days{display:flex;gap:3px;flex-wrap:wrap}
+.day{width:22px;height:22px;border-radius:5px;background:var(--grid);font-size:10px;display:grid;place-items:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.day.l1{background:color-mix(in srgb,var(--blue) 30%,var(--grid));color:var(--ink)}.day.l2{background:color-mix(in srgb,var(--blue) 60%,var(--grid));color:var(--sheet)}.day.l3{background:var(--blue);color:var(--sheet)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-top:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:700;border-top:0}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--blue-soft);color:var(--blue)}
+.chip.ok{background:var(--green-soft);color:var(--green)}.chip.warn{background:var(--red-soft);color:var(--red)}
+.timeline{display:flex;flex-direction:column;gap:12px}
+.dgroup{display:flex;flex-direction:column;gap:6px}
+.dhead{font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.sess{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 12px;font-size:14px;padding:4px 0}
+.sess .when{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px}
+.ev{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.ev span{font-size:12px;padding:1px 7px;border-radius:6px;border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.ev span.done{border-color:var(--green);color:var(--green)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--sheet);padding:10px 18px;border-radius:9px;font-weight:500;z-index:20}
+.tally{display:flex;flex-direction:column;gap:5px}
+.trow{display:grid;grid-template-columns:120px minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:14px}
+.tbar{height:9px;background:var(--grid);border-radius:99px;overflow:hidden}.tbar i{display:block;height:100%;background:var(--red)}
+.trow b{text-align:right}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script>
+(function(){
+const EP='__ENDPOINT__';
+const app=document.getElementById('app');
+const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const h=html=>{const d=document.createElement('div');d.innerHTML=html.trim();return d.firstElementChild};
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
+const pad=n=>String(n).padStart(2,'0');
+const ymd=t=>{const d=new Date(t);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const WD='일월화수목금토';
+const md=t=>{const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`};
+const hm=t=>{const d=new Date(t);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const dur=sec=>{sec=Math.max(0,Math.round(sec||0));const m=Math.floor(sec/60),hh=Math.floor(m/60);return hh?`${hh}시간 ${m%60}분`:m?`${m}분`:sec?`${sec}초`:'0분'};
+const key=(c,n)=>c+'|'+n;
+const J=s=>{try{return JSON.parse(s)}catch(e){return null}};
+
+let DATA=null, sel=null;
+let from=ls.get('dabogi.t.from',ymd(Date.now()-27*864e5)), to=ls.get('dabogi.t.to',ymd(Date.now())), clsF=ls.get('dabogi.t.cls','');
+
+function header(){return `<header><h1>다시보기 <em>학습 기록</em></h1><p class="sub">학생별로 언제, 얼마나, 몇 번 만에 풀었는지 봐요. 학부모님께 보낼 요약문도 만들 수 있어요.</p></header>`}
+
+function renderLogin(msg){
+  app.innerHTML=header();
+  if(!EP||EP.indexOf('__')===0){app.appendChild(h(`<section class="panel"><p>아직 기록 저장 주소가 연결되지 않았어요. Claude에게 스프레드시트 연결을 마무리해 달라고 해 주세요.</p></section>`));return}
+  const p=h(`<section class="panel" style="max-width:420px"><div class="field"><label class="label" for="pw">선생님 비밀번호</label><input type="password" id="pw" autocomplete="current-password"></div>
+    <label class="row hint" style="gap:6px"><input type="checkbox" id="rem" style="width:auto" checked> 이 기기에서 기억하기</label>
+    <div class="row"><button class="btn" id="go">기록 보기</button><span class="hint" id="msg">${esc(msg||'스프레드시트 "설정" 시트 B1 칸에 적은 비밀번호예요.')}</span></div></section>`);
+  const go=()=>load(p.querySelector('#pw').value,p.querySelector('#rem').checked);
+  p.querySelector('#go').onclick=go;p.querySelector('#pw').onkeydown=e=>{if(e.key==='Enter')go()};
+  app.appendChild(p);p.querySelector('#pw').focus();
+}
+
+async function load(pw,remember){
+  app.querySelectorAll('#msg').forEach(m=>m.textContent='불러오는 중…');
+  try{const r=await(await fetch(EP+'?action=data&key='+encodeURIComponent(pw))).json();
+    if(!r.ok){ls.del('dabogi.t.pw');return renderLogin(r.error==='bad_key'?'비밀번호가 맞지 않아요. 설정 시트 B1 칸을 확인해 주세요.':'불러오지 못했어요: '+r.error)}
+    if(remember)ls.set('dabogi.t.pw',pw);
+    DATA=r;DATA.pw=pw;renderMain()}
+  catch(e){renderLogin('인터넷 연결을 확인하고 다시 눌러 주세요.')}
+}
+
+function inRange(t){const d=ymd(t);return d>=from&&d<=to}
+
+/* Turn raw rows into per-student study records */
+function studentRecord(c,n){
+  const rows=DATA.rows.filter(r=>String(r.cls)===String(c)&&String(r.name)===String(n)&&inRange(r.at)).sort((a,b)=>a.at-b.at);
+  const sess={};
+  rows.forEach(r=>{const k=r.session||('x'+r.at);const s=sess[k]||(sess[k]={id:k,start:r.at,end:r.at,active:0,exam:r.examTitle,examId:r.examId,events:[]});
+    s.start=Math.min(s.start,r.at);s.end=Math.max(s.end,r.at);s.active=Math.max(s.active,Number(r.activeSec)||0);s.events.push(r)});
+  const sessions=Object.values(sess).sort((a,b)=>a.start-b.start);
+  const exams={};
+  rows.forEach(r=>{const e=exams[r.examId]||(exams[r.examId]={id:r.examId,title:r.examTitle,total:r.total,first:r.at,last:r.at,attempts:0,done:null,firstWrong:null,time:0,tally:null,everWrong:''});
+    e.first=Math.min(e.first,r.at);e.last=Math.max(e.last,r.at);
+    if(r.ev==='attempt'||r.ev==='done'){e.attempts=Math.max(e.attempts,Number(r.attempt)||0);if(Number(r.attempt)===1)e.firstWrong=Number(r.wrongCount)||0}
+    if(r.ev==='done'){e.done=r.at;const x=J(r.extra);if(x&&x.runSec)e.runSec=x.runSec}
+    if(r.ev==='report'){const x=J(r.extra);if(x&&x.tally)e.tally=x.tally;e.everWrong=r.wrong}});
+  sessions.forEach(s=>{if(exams[s.examId])exams[s.examId].time+=s.active});
+  const tally={};Object.values(exams).forEach(e=>e.tally&&Object.entries(e.tally).forEach(([k,v])=>tally[k]=(tally[k]||0)+v));
+  const days={};sessions.forEach(s=>{const d=ymd(s.start);days[d]=(days[d]||0)+s.active});
+  const total=sessions.reduce((a,s)=>a+s.active,0);
+  return {rows,sessions,exams:Object.values(exams).sort((a,b)=>a.first-b.first),tally,days,total,last:rows.length?rows[rows.length-1].at:null};
+}
+
+function renderMain(){
+  app.innerHTML=header();
+  const classes=[...new Set(DATA.roster.map(r=>r.cls))];
+  const f=h(`<section class="panel"><div class="filters">
+    <div class="field"><label class="label" for="ffrom">기간 시작</label><input type="date" id="ffrom" value="${from}"></div>
+    <div class="field"><label class="label" for="fto">기간 끝</label><input type="date" id="fto" value="${to}"></div>
+    <div class="field"><label class="label" for="fcls">반</label><select id="fcls"><option value="">전체 반</option>${classes.map(c=>`<option ${c===clsF?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn ghost" id="refresh">새로 불러오기</button><button class="btn ghost" id="logout">잠그기</button></div></div>
+    <span class="hint">시험 기간에 맞춰 기간을 바꾸면 그 기간의 기록만 계산해요. 마지막 불러온 시각 ${hm(Date.now())}</span></section>`);
+  f.querySelector('#ffrom').onchange=e=>{from=e.target.value;ls.set('dabogi.t.from',from);renderMain()};
+  f.querySelector('#fto').onchange=e=>{to=e.target.value;ls.set('dabogi.t.to',to);renderMain()};
+  f.querySelector('#fcls').onchange=e=>{clsF=e.target.value;ls.set('dabogi.t.cls',clsF);renderMain()};
+  f.querySelector('#refresh').onclick=()=>load(DATA.pw,!!ls.get('dabogi.t.pw',''));
+  f.querySelector('#logout').onclick=()=>{ls.del('dabogi.t.pw');DATA=null;renderLogin('잠갔어요.')};
+  app.appendChild(f);
+  const lay=h(`<div class="layout"><aside class="panel"><div class="label">학생 (${DATA.roster.filter(r=>!clsF||r.cls===clsF).length}명)</div><div class="roster"></div></aside><section class="panel" id="detail"></section></div>`);
+  const ro=lay.querySelector('.roster');
+  const recs={};
+  classes.filter(c=>!clsF||c===clsF).forEach(c=>{ro.appendChild(h(`<div class="cls">${esc(c)}</div>`));
+    DATA.roster.filter(r=>r.cls===c).forEach(r=>{const rec=recs[key(r.cls,r.name)]=studentRecord(r.cls,r.name);
+      const done=rec.exams.filter(e=>e.done).length;
+      const b=h(`<button class="st ${rec.rows.length?'':'none'}" aria-current="${sel===key(r.cls,r.name)}"><b>${esc(r.name)}</b><span class="t">${rec.rows.length?dur(rec.total):'기록 없음'}</span><span class="m">${rec.rows.length?`${Object.keys(rec.days).length}일 · 완료 ${done}개 · 마지막 ${md(rec.last)}`:'이 기간에 푼 시험이 없어요'}</span></button>`);
+      b.onclick=()=>{sel=key(r.cls,r.name);renderMain();if(window.innerWidth<820)document.getElementById('detail').scrollIntoView({behavior:'smooth'})};ro.appendChild(b)})});
+  app.appendChild(lay);
+  const det=lay.querySelector('#detail');
+  if(!sel||!recs[sel]){det.innerHTML=`<div class="empty">왼쪽에서 학생 이름을 누르면 학습 기록이 나와요.${DATA.rows.length?'':'<br>아직 저장된 기록이 없어요. 학생이 시험 링크에서 채점하면 여기에 쌓여요.'}</div>`;return}
+  const [c,n]=sel.split('|');renderDetail(det,c,n,recs[sel]);
+}
+
+function dayStrip(rec){const out=[];const a=new Date(from+'T00:00'),b=new Date(to+'T00:00');
+  for(let d=new Date(a);d<=b&&out.length<62;d.setDate(d.getDate()+1)){const k=ymd(d),s=rec.days[k]||0;const lv=!s?'':s<900?'l1':s<2700?'l2':'l3';
+    out.push(`<span class="day ${lv}" title="${md(d)} ${dur(s)}">${d.getDate()}</span>`)}return out.join('')}
+
+function renderDetail(det,c,n,rec){
+  const done=rec.exams.filter(e=>e.done);
+  const avg=done.length?(done.reduce((a,e)=>a+e.attempts,0)/done.length).toFixed(1):'-';
+  const tk=Object.entries(rec.tally).sort((a,b)=>b[1]-a[1]);
+  det.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(c)} ${esc(n)}</h2><span class="hint">${md(from)} ~ ${md(to)}</span></div>
+  <div class="tiles"><div class="tile"><div class="label">공부한 날</div><div class="v">${Object.keys(rec.days).length}일</div></div><div class="tile"><div class="label">총 푼 시간</div><div class="v">${dur(rec.total)}</div></div><div class="tile"><div class="label">완료한 시험</div><div class="v">${done.length} / ${rec.exams.length}</div></div><div class="tile"><div class="label">평균 채점 횟수</div><div class="v">${avg}회</div></div></div>
+  <div><div class="label" style="margin-bottom:6px">날짜별 공부량</div><div class="days">${dayStrip(rec)}</div><p class="hint" style="margin:4px 0 0">색이 진할수록 오래 공부한 날이에요 (15분 · 45분 기준).</p></div>
+  <div><div class="label" style="margin-bottom:6px">시험별 기록</div>${rec.exams.length?`<div class="tbl"><table><thead><tr><th>시험</th><th>처음 시작</th><th>결과</th><th>채점</th><th>처음 틀린 수</th><th>푼 시간</th></tr></thead><tbody>${rec.exams.map(e=>`<tr><td>${esc(e.title)}</td><td>${md(e.first)} ${hm(e.first)}</td><td>${e.done?`<span class="chip ok">${md(e.done)} ${hm(e.done)} 완료</span>`:'<span class="chip warn">진행 중</span>'}</td><td>${e.attempts||0}회</td><td>${e.firstWrong==null?'-':e.firstWrong+'개 / '+(e.total||'?')}</td><td>${dur(e.runSec||e.time)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">이 기간에 푼 시험이 없어요.</p>'}</div>
+  ${tk.length?`<div><div class="label" style="margin-bottom:6px">자주 한 실수 (AI 분석 기준)</div><div class="tally">${tk.map(([k,v])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(v/tk[0][1]*100)}%"></i></span><b>${v}번</b></div>`).join('')}</div></div>`:''}
+  <div><div class="label" style="margin-bottom:6px">공부한 순서대로</div><div class="timeline"></div></div>
+  <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름 (예: ○○수학학원)" value="${esc(ls.get('dabogi.t.acad',''))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
+  const tl=det.querySelector('.timeline');const byDay={};
+  rec.sessions.forEach(s=>{(byDay[ymd(s.start)]=byDay[ymd(s.start)]||[]).push(s)});
+  const dk=Object.keys(byDay).sort().reverse();
+  if(!dk.length)tl.innerHTML='<p class="hint">기록이 없어요.</p>';
+  dk.forEach(d=>{const ss=byDay[d];const g=h(`<div class="dgroup"><div class="dhead"><span>${md(ss[0].start)}</span><span class="hint">${dur(ss.reduce((a,s)=>a+s.active,0))}</span></div></div>`);
+    ss.forEach(s=>{const ev=s.events.filter(e=>e.ev==='attempt'||e.ev==='done').map(e=>`<span class="${e.ev==='done'?'done':''}">${hm(e.at)} ${e.attempt}차 ${e.ev==='done'?'다 맞음':`틀림 ${e.wrongCount}개${e.wrong?' ('+esc(e.wrong)+'번)':''}`}</span>`).join('');
+      g.appendChild(h(`<div class="sess"><span class="when">${hm(s.start)}–${hm(s.end)}</span><div><strong>${esc(s.exam)}</strong> <span class="hint">화면을 보고 있던 시간 ${dur(s.active)}</span><div class="ev">${ev||'<span>채점 없이 시험지만 봄</span>'}</div></div></div>`))});
+    tl.appendChild(g)});
+  const make=()=>{const acad=det.querySelector('#acad').value.trim(),cmt=det.querySelector('#cmt').value.trim();
+    const L=[];L.push(`${acad?'['+acad+'] ':''}${n} 학생 학습 기록 (${md(from)} ~ ${md(to)})`);L.push('');
+    L.push(`· 공부한 날: ${Object.keys(rec.days).length}일${Object.keys(rec.days).length?' ('+Object.keys(rec.days).sort().map(k=>md(k+'T00:00')).join(', ')+')':''}`);
+    L.push(`· 문제를 푼 시간: 모두 ${dur(rec.total)}`);
+    L.push(`· 완료한 시험: ${done.length}개${rec.exams.length>done.length?` (시작했지만 아직 못 끝낸 시험 ${rec.exams.length-done.length}개)`:''}`);
+    rec.exams.forEach(e=>L.push(`  - ${e.title}: ${e.done?`${md(e.done)} 완료, ${e.attempts}번 채점 만에 모두 맞힘`:'진행 중'}${e.firstWrong!=null?`, 처음 채점에서 ${e.firstWrong}문항 틀림`:''}, ${dur(e.runSec||e.time)}`));
+    if(tk.length)L.push(`· 자주 한 실수: ${tk.slice(0,3).map(([k,v])=>`${k} ${v}번`).join(', ')}`);
+    L.push('');L.push('틀린 문제를 알려주지 않고, 스스로 처음부터 다시 검토해서 모두 맞힐 때까지 푸는 방식으로 공부했어요.');
+    if(cmt){L.push('');L.push('선생님 한마디: '+cmt)}
+    det.querySelector('#pmsg').value=L.join('\n')};
+  make();
+  det.querySelector('#acad').oninput=e=>{ls.set('dabogi.t.acad',e.target.value);make()};
+  det.querySelector('#cmt').oninput=make;
+  det.querySelector('#copy').onclick=async()=>{const ta=det.querySelector('#pmsg');try{await navigator.clipboard.writeText(ta.value);toast('복사했어요')}catch(e){ta.focus();ta.select();try{document.execCommand('copy');toast('복사했어요')}catch(_){toast('글자를 길게 눌러 직접 복사해 주세요')}}};
+}
+
+const saved=ls.get('dabogi.t.pw','');
+if(saved)load(saved,true);else renderLogin();
+})();
+</script>
+</body>
+</html>
