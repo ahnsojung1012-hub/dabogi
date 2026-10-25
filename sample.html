@@ -156,6 +156,7 @@ const myName=()=>prog._me?prog._me.name:(prog._name||'');
 
 /* ---------- study log: only on hosted student pages that carry STATE.endpoint ---------- */
 const EP=STATE.endpoint||'';
+const PICK=EP||(Array.isArray(STATE.roster)&&STATE.roster.length>0);
 const QKEY='dabogi.queue';
 let queue=[];try{queue=JSON.parse(localStorage.getItem(QKEY)||'[]')||[]}catch(e){queue=[]}
 const saveQ=()=>{try{localStorage.setItem(QKEY,JSON.stringify(queue.slice(-300)))}catch(e){}};
@@ -198,7 +199,7 @@ function render(){
 }
 
 function renderHome(){
-  if(EP)renderWho();else{
+  if(PICK)renderWho();else{
   const p=h(`<section class="panel"><div class="field"><label class="label" for="sname">내 이름</label><input type="text" id="sname" placeholder="예: 김민준" value="${esc(prog._name||'')}"></div></section>`);
   p.querySelector('#sname').oninput=e=>{prog._name=e.target.value;saveProg()};
   app.appendChild(p)}
@@ -206,7 +207,7 @@ function renderHome(){
   const list=h(`<div class="exam-list"></div>`);
   STATE.exams.forEach(ex=>{const pr=prog[ex.id];const done=pr&&pr.done;
     const c=h(`<button class="exam-card"><div class="row">${ex.sample?'<span class="chip ex">예시</span>':''}${done?'<span class="chip done">완료</span>':pr&&pr.attempts.length?`<span class="chip">${pr.attempts.length}회 채점함</span>`:''}</div><h3>${esc(ex.title)}</h3><div class="meta">${ex.hashes.length}문항 · 시험지 ${ex.images.length}장</div></button>`);
-    c.onclick=()=>{if(EP?!prog._me:!norm(prog._name)){toast(EP?'반과 이름을 먼저 확인해 주세요':'이름을 먼저 적어 주세요');const f=document.getElementById('sname')||document.getElementById('wname');f&&f.focus();return}view.exam=ex.id;render();scrollTo(0,0)};list.appendChild(c)});
+    c.onclick=()=>{if(PICK?!prog._me:!norm(prog._name)){toast(PICK?'반과 이름을 먼저 골라 주세요':'이름을 먼저 적어 주세요');const f=document.getElementById('sname')||document.getElementById('wname');f&&f.focus();return}view.exam=ex.id;render();scrollTo(0,0)};list.appendChild(c)});
   app.appendChild(list);
 }
 
@@ -228,7 +229,7 @@ function mathView(v){let t=esc(String(v||''));if(!t)return '';
   t=t.replace(new RegExp(OP+'/'+OP,'gi'),(m,p,q)=>`<span class="frac"><span>${mathInner(strip(p))}</span><span>${mathInner(strip(q))}</span></span>`);
   return mathInner(t).replace(/-/g,'−')}
 function renderWho(){
-  if(prog._me){const p=h(`<section class="panel"><div class="row" style="justify-content:space-between"><div><div class="label">내 이름</div><strong style="font-size:18px">${esc(prog._me.cls)} ${esc(prog._me.name)}</strong></div><button class="btn ghost small" id="wchange">다른 이름으로 바꾸기</button></div><p class="hint" style="margin:0">채점 기록은 선생님께 저장돼요.${queue.length?` 아직 보내지 못한 기록 ${queue.length}개는 인터넷이 연결되면 자동으로 보내요.`:''}</p></section>`);
+  if(prog._me){const p=h(`<section class="panel"><div class="row" style="justify-content:space-between"><div><div class="label">내 이름</div><strong style="font-size:18px">${esc(prog._me.cls)} ${esc(prog._me.name)}</strong></div><button class="btn ghost small" id="wchange">다른 이름으로 바꾸기</button></div><p class="hint" style="margin:0">${EP?'채점 기록은 선생님께 저장돼요.':'이 화면은 미리보기라 기록이 저장되지 않아요.'}${queue.length?` 아직 보내지 못한 기록 ${queue.length}개는 인터넷이 연결되면 자동으로 보내요.`:''}</p></section>`);
     p.querySelector('#wchange').onclick=()=>{delete prog._me;saveProg();render()};app.appendChild(p);return}
   const R=Array.isArray(STATE.roster)?STATE.roster:[];
   if(R.length){
