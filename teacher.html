@@ -81,7 +81,7 @@ th,td{text-align:left;padding:7px 8px;border-top:1px solid var(--line);vertical-
 <main class="wrap" id="app"></main>
 <script>
 (function(){
-const EP='';
+const EP='https://script.google.com/macros/s/AKfycbyzt_AuvfzMXuLG0IzsM_GzG-Kx7oqzvLBCkQ7eWxhmu_kDD6ETHH4fs39pB_b2kc_5PQ/exec';
 const app=document.getElementById('app');
 const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
