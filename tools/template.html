@@ -230,6 +230,16 @@ function mathView(v){let t=esc(String(v||''));if(!t)return '';
 function renderWho(){
   if(prog._me){const p=h(`<section class="panel"><div class="row" style="justify-content:space-between"><div><div class="label">내 이름</div><strong style="font-size:18px">${esc(prog._me.cls)} ${esc(prog._me.name)}</strong></div><button class="btn ghost small" id="wchange">다른 이름으로 바꾸기</button></div><p class="hint" style="margin:0">채점 기록은 선생님께 저장돼요.${queue.length?` 아직 보내지 못한 기록 ${queue.length}개는 인터넷이 연결되면 자동으로 보내요.`:''}</p></section>`);
     p.querySelector('#wchange').onclick=()=>{delete prog._me;saveProg();render()};app.appendChild(p);return}
+  const R=Array.isArray(STATE.roster)?STATE.roster:[];
+  if(R.length){
+    const classes=[...new Set(R.map(r=>r.cls))];
+    const p=h(`<section class="panel"><div class="krow"><div class="field"><label class="label" for="wcls">반</label><select id="wcls"><option value="">반을 골라요</option>${classes.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div class="field" style="flex:2 1 160px"><label class="label" for="wname">이름</label><select id="wname" disabled><option value="">먼저 반을 골라요</option></select></div></div><div class="row"><button class="btn" id="wok" disabled>이 이름으로 시작</button><span class="hint">내 반과 이름을 골라요. 목록에 내 이름이 없으면 선생님께 말해 주세요.</span></div></section>`);
+    const cs=p.querySelector('#wcls'),ns=p.querySelector('#wname'),ok=p.querySelector('#wok');
+    if(classes.length===1){cs.value=classes[0]}
+    const fill=()=>{const list=R.filter(r=>r.cls===cs.value);ns.disabled=!list.length;ns.innerHTML=list.length?'<option value="">이름을 골라요</option>'+list.map(r=>`<option>${esc(r.name)}</option>`).join(''):'<option value="">먼저 반을 골라요</option>';ok.disabled=true};
+    cs.onchange=fill;ns.onchange=()=>{ok.disabled=!ns.value};fill();
+    ok.onclick=()=>{if(!cs.value||!ns.value)return;prog._me={cls:cs.value,name:ns.value};saveProg();render()};
+    app.appendChild(p);return}
   const p=h(`<section class="panel"><div class="krow"><div class="field"><label class="label" for="wcls">반</label><input type="text" id="wcls" placeholder="예: 2-1" autocomplete="off"></div><div class="field" style="flex:2 1 160px"><label class="label" for="wname">이름</label><input type="text" id="wname" placeholder="예: 김민준" autocomplete="off"></div></div><div class="row"><button class="btn" id="wok">확인</button><span class="hint" id="wmsg">선생님 명단에 있는 반과 이름을 적어요.</span></div></section>`);
   const go=async()=>{const cls=p.querySelector('#wcls').value.trim(),name=p.querySelector('#wname').value.trim(),msg=p.querySelector('#wmsg');
     if(!name){msg.textContent='이름을 적어 주세요.';return}
