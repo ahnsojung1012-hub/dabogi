@@ -69,6 +69,19 @@ textarea{min-height:260px;resize:vertical;line-height:1.7}
 .cb[aria-pressed="true"]{background:var(--band);color:var(--band-ink);border-color:var(--band);border-top-color:var(--hi)}.cb[aria-pressed="true"] span{color:var(--band-ink);opacity:.8}
 .st.all b{color:var(--blue)}
 .ctable tbody tr{cursor:pointer}.ctable tbody tr:hover,.ctable tbody tr:focus-visible{background:var(--blue-soft)}
+.live{gap:6px;border-color:var(--hi);background:var(--sheet)}
+.dot-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:middle;animation:blink 2s infinite}
+@keyframes blink{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.dot-live{animation:none}}
+.btn.small{padding:5px 10px;font-size:13px}
+.passlist{display:flex;flex-wrap:wrap;gap:6px}
+.pchip{font-size:13px;padding:3px 10px;border-radius:99px;background:var(--green-soft);color:var(--green);font-variant-numeric:tabular-nums}.pchip b{color:var(--ink)}
+.pops{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;z-index:30;max-width:min(340px,calc(100vw - 32px))}
+.pop{position:relative;background:var(--band);color:var(--band-ink);border-left:6px solid var(--hi);border-radius:12px;padding:12px 36px 12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.pop .pt{font-size:12px;font-weight:700;color:var(--hi);letter-spacing:.08em}.pop .pn{font-family:var(--f-display);font-size:20px}.pop .pm{font-size:13px;opacity:.85}
+.pop .px{position:absolute;top:6px;right:8px;border:0;background:none;color:var(--band-ink);font-size:20px;cursor:pointer;opacity:.7}
+.pop.old{opacity:.6}
+@media (prefers-reduced-motion:no-preference){.pop{animation:slidein .35s ease-out}@keyframes slidein{from{transform:translateX(30px);opacity:0}}}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper)}
 .tile .v{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
@@ -143,7 +156,7 @@ async function load(pw,remember){
   try{const r=await(await fetch(EP+'?action=data&key='+encodeURIComponent(pw))).json();
     if(!r.ok){ls.del('dabogi.t.pw');return renderLogin(r.error==='bad_key'?'비밀번호가 맞지 않아요. 설정 시트 B1 칸을 확인해 주세요.':'불러오지 못했어요: '+r.error)}
     if(remember)ls.set('dabogi.t.pw',pw);
-    DATA=r;DATA.pw=pw;renderMain()}
+    DATA=r;DATA.pw=pw;initLive();renderMain()}
   catch(e){renderLogin('인터넷 연결을 확인하고 다시 눌러 주세요.')}
 }
 
@@ -182,8 +195,9 @@ function renderMain(){
   f.querySelector('#ffrom').onchange=e=>{from=e.target.value;ls.set('dabogi.t.from',from);renderMain()};
   f.querySelector('#fto').onchange=e=>{to=e.target.value;ls.set('dabogi.t.to',to);renderMain()};
   f.querySelector('#refresh').onclick=()=>load(DATA.pw,!!ls.get('dabogi.t.pw',''));
-  f.querySelector('#logout').onclick=()=>{ls.del('dabogi.t.pw');DATA=null;renderLogin('잠갔어요.')};
+  f.querySelector('#logout').onclick=()=>{ls.del('dabogi.t.pw');DATA=null;clearInterval(liveTimer);seen=0;renderLogin('잠갔어요.')};
   app.appendChild(f);
+  app.appendChild(h('<section class="panel live" id="live"></section>'));pending=false;renderLive();
   if(!classes.length){app.appendChild(h(`<section class="panel"><div class="empty">스프레드시트 명단 시트에 학생이 없어요. A열에 반, B열에 이름을 적어 주세요.</div></section>`));return}
   /* 1단계: 반 고르기 */
   const recs={};DATA.roster.forEach(r=>{recs[key(r.cls,r.name)]=studentRecord(r.cls,r.name)});
@@ -268,6 +282,48 @@ function renderDetail(det,c,n,rec){
   det.querySelector('#cmt').oninput=make;
   det.querySelector('#opts').onchange=e=>{const k=e.target.dataset.k;if(!k)return;popt[k]=e.target.checked;ls.set('dabogi.t.opts',JSON.stringify(popt));make()};
   det.querySelector('#copy').onclick=async()=>{const ta=det.querySelector('#pmsg');try{await navigator.clipboard.writeText(ta.value);toast('복사했어요')}catch(e){ta.focus();ta.select();try{document.execCommand('copy');toast('복사했어요')}catch(_){toast('글자를 길게 눌러 직접 복사해 주세요')}}};
+}
+
+/* ---------- 실시간 통과 알림 ---------- */
+let seen=0,liveTimer=null,audioCtx=null,pending=false,unread=0;
+const passed=[];
+const maxRecv=rows=>rows.reduce((m,r)=>Math.max(m,Number(r.recv)||0),0);
+function isToday(t){return ymd(t)===ymd(Date.now())}
+function doneInfo(r){const x=J(r.extra)||{};return {cls:r.cls,name:r.name,exam:r.examTitle,attempt:Number(r.attempt)||0,sec:x.runSec||Number(r.activeSec)||0,at:r.at}}
+function initLive(){
+  if(!seen){seen=maxRecv(DATA.rows);passed.length=0;
+    DATA.rows.filter(r=>r.ev==='done'&&isToday(r.at)).sort((a,b)=>b.at-a.at).forEach(r=>passed.push(doneInfo(r)))}
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  clearInterval(liveTimer);liveTimer=setInterval(poll,20000);renderLive();
+}
+function chime(){if(!audioCtx||ls.get('dabogi.t.sound','1')!=='1')return;try{audioCtx.resume();const t=audioCtx.currentTime;
+  [[880,0],[1318.5,.18]].forEach(([f,d])=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.25,t+d+.02);g.gain.exponentialRampToValueAtTime(.001,t+d+.6);o.connect(g).connect(audioCtx.destination);o.start(t+d);o.stop(t+d+.65)})}catch(e){}}
+function popCard(p){const box=document.getElementById('pops')||document.body.appendChild(h('<div id="pops" class="pops" aria-live="polite"></div>'));
+  const c=h(`<div class="pop"><div class="pt">통과했어요</div><div class="pn">${esc(p.cls)} <b>${esc(p.name)}</b></div><div class="pm">${esc(p.exam)} · ${p.attempt}번 채점 만에 · ${dur(p.sec)}</div><button class="px" aria-label="닫기">×</button></div>`);
+  c.querySelector('.px').onclick=()=>c.remove();box.prepend(c);setTimeout(()=>c.classList.add('old'),60000)}
+function sysNote(p){try{if('Notification' in window&&Notification.permission==='granted')new Notification(`${p.cls} ${p.name} 통과!`,{body:`${p.exam} · ${p.attempt}번 채점 만에 · ${dur(p.sec)}`,tag:'pass-'+p.name+p.at})}catch(e){}}
+async function poll(){if(!DATA)return;
+  try{const r=await(await fetch(EP+'?action=data&key='+encodeURIComponent(DATA.pw))).json();if(!r.ok)return;
+    const fresh=r.rows.filter(x=>(Number(x.recv)||0)>seen);seen=Math.max(seen,maxRecv(r.rows));
+    const pw=DATA.pw;DATA=r;DATA.pw=pw;
+    const dones=fresh.filter(x=>x.ev==='done').map(doneInfo);
+    dones.forEach(p=>{passed.unshift(p);popCard(p);sysNote(p)});
+    if(dones.length){chime();if(document.hidden){unread+=dones.length;document.title=`(${unread}) 통과 · 블라인드 테스트 학습 기록`}}
+    if(fresh.length){if(!sel)renderMain();else{pending=true;renderLive()}}else renderLive();
+    document.querySelectorAll('.lv-time').forEach(e=>e.textContent=hm(Date.now()));
+  }catch(e){}}
+document.addEventListener('pointerdown',()=>{try{audioCtx&&audioCtx.resume()}catch(e){}},{passive:true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){unread=0;document.title='블라인드 테스트 학습 기록'}});
+function renderLive(){const el=document.getElementById('live');if(!el)return;
+  const notif='Notification' in window?Notification.permission:'unsupported';
+  el.innerHTML=`<div class="row" style="justify-content:space-between"><div><span class="dot-live"></span><strong>실시간 알림 켜짐</strong> <span class="hint">20초마다 확인 · 마지막 확인 <span class="lv-time">${hm(Date.now())}</span></span></div>
+    <div class="row" style="gap:6px">${pending?'<button class="btn small" id="lvnew">새 기록 반영하기</button>':''}<label class="row hint" style="gap:4px"><input type="checkbox" id="lvsound" style="width:auto" ${ls.get('dabogi.t.sound','1')==='1'?'checked':''}> 소리</label>${notif==='default'?'<button class="btn ghost small" id="lvperm">컴퓨터 알림도 받기</button>':notif==='denied'?'<span class="hint">컴퓨터 알림이 브라우저에서 막혀 있어요</span>':''}</div></div>
+    <div class="label" style="margin-top:6px">오늘 통과한 학생 ${passed.filter(p=>isToday(p.at)).length}명</div>
+    <div class="passlist">${passed.filter(p=>isToday(p.at)).map(p=>`<span class="pchip"><b>${esc(p.name)}</b> ${esc(p.cls)} · ${hm(p.at)} · ${p.attempt}회</span>`).join('')||'<span class="hint">아직 없어요. 학생이 통과하면 여기에 바로 나타나요.</span>'}</div>`;
+  const nb=el.querySelector('#lvnew');if(nb)nb.onclick=()=>{pending=false;renderMain()};
+  el.querySelector('#lvsound').onchange=e=>{ls.set('dabogi.t.sound',e.target.checked?'1':'0');if(e.target.checked){try{audioCtx&&audioCtx.resume()}catch(_){}chime()}};
+  const pb=el.querySelector('#lvperm');if(pb)pb.onclick=async()=>{try{await Notification.requestPermission()}catch(e){}renderLive()};
 }
 
 const saved=ls.get('dabogi.t.pw','');
