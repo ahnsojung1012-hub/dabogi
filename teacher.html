@@ -4,30 +4,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>다시보기 학습 기록</title>
+<title>블라인드 테스트 학습 기록</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: roster rail on the left, one student's study record on the right; stacks on phones. */
+/* Layout: navy masthead, then roster rail on the left and one student's study record on the right; stacks on phones. */
 :root{
-  --paper:#f6f8fb; --sheet:#ffffff; --grid:#e3e9f2; --ink:#1d2433; --muted:#5d6a80;
-  --line:#cfd8e6; --blue:#2554c7; --blue-soft:#e6edfc; --red:#c8322a; --red-soft:#fbe9e7;
-  --green:#1f7a4d; --green-soft:#e3f4ea;
-  --f-display:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --paper:#f3f5f7; --sheet:#ffffff; --grid:#e4e9ee; --ink:#14202e; --muted:#566373;
+  --line:#d3dbe4; --blue:#1d5b78; --blue-soft:#e2eef3; --red:#c23b2c; --red-soft:#fbe9e6;
+  --green:#257a4c; --green-soft:#e2f2e8; --hi:#f4c84a; --band:#13283b; --band-ink:#f3f5f7;
+  --f-display:"Gowun Batang","Nanum Myeongjo","AppleMyungjo",serif;
   --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
-  --paper:#12161f; --sheet:#1a202c; --grid:#1f2633; --ink:#e7ebf3; --muted:#9aa6bb;
-  --line:#2e3746; --blue:#7fa2ff; --blue-soft:#1d2a4a; --red:#ff7b70; --red-soft:#3a1f1e;
-  --green:#5fd39a; --green-soft:#183326; color-scheme:dark}}
+  --paper:#0e161f; --sheet:#15202b; --grid:#18242f; --ink:#e5ecf2; --muted:#93a2b2;
+  --line:#283746; --blue:#72b4d3; --blue-soft:#163040; --red:#ff8a78; --red-soft:#3a201c;
+  --green:#64d29b; --green-soft:#15302a; --hi:#e8bd45; --band:#1c3850; --band-ink:#eef2f6; color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
 .wrap{max-width:1100px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
-h1{font-family:var(--f-display);font-weight:400;font-size:32px;line-height:1.1;margin:0}h1 em{font-style:normal;color:var(--red)}
-h2{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0}
+header.top{position:relative;overflow:hidden;background:var(--band);color:var(--band-ink);border-radius:16px;padding:22px}
+header.top>*{position:relative}
+header.top .note{position:absolute;right:14px;top:-6px;font-family:var(--f-display);font-size:52px;line-height:1;white-space:nowrap;opacity:.08;pointer-events:none}
+header.top .note sup{font-size:.55em}
+.acad{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--hi)}
+.acad::before{content:"";width:18px;height:2px;background:var(--hi)}
+h1{font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1.15;margin:6px 0 0}
+h1 em{font-style:normal;position:relative;z-index:0;white-space:nowrap}
+h1 em::after{content:"";position:absolute;left:-3px;right:-3px;bottom:.02em;height:.3em;background:var(--hi);opacity:.85;z-index:-1;border-radius:2px}
+header.top .sub{color:var(--band-ink);opacity:.78}
+h2{font-family:var(--f-display);font-weight:700;font-size:24px;margin:0}
 h3{font-size:15px;margin:0}
 .sub{color:var(--muted);margin:4px 0 0}
 .panel{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
@@ -38,7 +47,8 @@ textarea{min-height:260px;resize:vertical;line-height:1.7}
 :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.btn{font:inherit;font-weight:700;border-radius:9px;padding:9px 16px;border:1px solid var(--blue);background:var(--blue);color:var(--sheet);cursor:pointer}
+.btn{font:inherit;font-weight:700;border-radius:9px;padding:9px 16px;border:1px solid var(--band);background:var(--band);color:var(--band-ink);cursor:pointer}
+#copy,#go{background:var(--hi);border-color:var(--hi);color:#13283b}
 .btn.ghost{background:none;color:var(--blue)}.btn:disabled{opacity:.4}
 .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
 .layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
@@ -52,7 +62,7 @@ textarea{min-height:260px;resize:vertical;line-height:1.7}
 .st.none .t{color:var(--muted)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper)}
-.tile .v{font-family:var(--f-display);font-size:26px;line-height:1.2;font-variant-numeric:tabular-nums}
+.tile .v{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
 .days{display:flex;gap:3px;flex-wrap:wrap}
 .day{width:22px;height:22px;border-radius:5px;background:var(--grid);font-size:10px;display:grid;place-items:center;color:var(--muted);font-variant-numeric:tabular-nums}
 .day.l1{background:color-mix(in srgb,var(--blue) 30%,var(--grid));color:var(--ink)}.day.l2{background:color-mix(in srgb,var(--blue) 60%,var(--grid));color:var(--sheet)}.day.l3{background:var(--blue);color:var(--sheet)}
@@ -106,7 +116,7 @@ const OPTS=[['days','공부한 날 수'],['dates','공부한 날짜'],['time','�
 const popt=Object.assign({days:true,dates:true,time:true,count:true,exams:true,examDate:true,attempts:true,first:true,examTime:true,tally:true,method:true},J(ls.get('dabogi.t.opts','{}'))||{});
 let from=ls.get('dabogi.t.from',ymd(Date.now()-27*864e5)), to=ls.get('dabogi.t.to',ymd(Date.now())), clsF=ls.get('dabogi.t.cls','');
 
-function header(){return `<header><h1>다시보기 <em>학습 기록</em></h1><p class="sub">학생별로 언제, 얼마나, 몇 번 만에 풀었는지 봐요. 학부모님께 보낼 요약문도 만들 수 있어요.</p></header>`}
+function header(){return `<header class="top"><div class="note" aria-hidden="true">x<sup>n</sup>+y<sup>n</sup>=z<sup>n</sup></div><span class="acad">페르마 수학학원</span><h1>블라인드 테스트 <em>학습 기록</em></h1><p class="sub">학생별로 언제, 얼마나, 몇 번 만에 풀었는지 봐요. 학부모님께 보낼 요약문도 만들 수 있어요.</p></header>`}
 
 function renderLogin(msg){
   app.innerHTML=header();
@@ -193,7 +203,7 @@ function renderDetail(det,c,n,rec){
   <div><div class="label" style="margin-bottom:6px">시험별 기록</div>${rec.exams.length?`<div class="tbl"><table><thead><tr><th>시험</th><th>처음 시작</th><th>결과</th><th>채점</th><th>처음 틀린 수</th><th>푼 시간</th></tr></thead><tbody>${rec.exams.map(e=>`<tr><td>${esc(e.title)}</td><td>${md(e.first)} ${hm(e.first)}</td><td>${e.done?`<span class="chip ok">${md(e.done)} ${hm(e.done)} 완료</span>`:'<span class="chip warn">진행 중</span>'}</td><td>${e.attempts||0}회</td><td>${e.firstWrong==null?'-':e.firstWrong+'개 / '+(e.total||'?')}</td><td>${dur(e.runSec||e.time)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">이 기간에 푼 시험이 없어요.</p>'}</div>
   ${tk.length?`<div><div class="label" style="margin-bottom:6px">자주 한 실수 (AI 분석 기준)</div><div class="tally">${tk.map(([k,v])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(v/tk[0][1]*100)}%"></i></span><b>${v}번</b></div>`).join('')}</div></div>`:''}
   <div><div class="label" style="margin-bottom:6px">공부한 순서대로</div><div class="timeline"></div></div>
-  <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름 (예: ○○수학학원)" value="${esc(ls.get('dabogi.t.acad',''))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div>
+  <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름" value="${esc(ls.get('dabogi.t.acad','페르마 수학학원'))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div>
   <div class="opts" id="opts"><span class="lbl">요약문에 넣을 내용 · 체크한 것만 들어가요</span>${OPTS.map(o=>`<label class="opt"><input type="checkbox" data-k="${o[0]}" ${popt[o[0]]?'checked':''}><span>${o[1]}</span></label>`).join('')}</div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
   const tl=det.querySelector('.timeline');const byDay={};
   rec.sessions.forEach(s=>{(byDay[ymd(s.start)]=byDay[ymd(s.start)]||[]).push(s)});

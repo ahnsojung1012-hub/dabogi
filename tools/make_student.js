@@ -12,7 +12,7 @@ if (!ex) { console.error('exam not found'); process.exit(1); }
 let tpl = fs.readFileSync(__dirname + '/template.html', 'utf8');
 let cfg = {}; try { cfg = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8')); } catch (e) {}
 const json = JSON.stringify({ exams: [ex], studentOnly: true, endpoint: cfg.endpoint || '', roster: (() => { try { return JSON.parse(fs.readFileSync(__dirname + '/roster.json', 'utf8')); } catch (e) { return []; } })() }).replace(/</g, '\\u003c');
-tpl = tpl.replace('<title>다시보기 채점실</title>', `<title>${ex.title.replace(/[<&]/g, '')} · 다시보기 채점실</title>`);
+tpl = tpl.replace('<title>블라인드 테스트</title>', `<title>${ex.title.replace(/[<&]/g, '')} · 블라인드 테스트</title>`);
 tpl = tpl.replace('__STATE__', () => json);
 const page = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>' + tpl + '</body></html>';
 fs.writeFileSync(out, page);
