@@ -62,7 +62,19 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .sheet-imgs img{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
 .noimg{border:1px dashed var(--line);border-radius:8px;padding:28px;text-align:center;color:var(--muted)}
 .answers{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
-.ans-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 14px}
+.ans{min-width:0}
+.mc{display:flex;gap:4px;flex:1;min-width:0}
+.mc button{flex:1;min-width:0;height:36px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-size:17px;cursor:pointer;padding:0}
+.mc button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--sheet)}
+.sa{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mprev{font-size:15px;min-height:1.4em;color:var(--blue);font-family:"Times New Roman",serif;line-height:1.4;overflow-x:auto;white-space:nowrap}
+.mprev sup{font-size:.7em}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.85em;line-height:1.05;margin:0 2px}.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 2px}
+.rt{border-top:1px solid currentColor;padding-left:1px}
+.mkeys{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--paper);position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+.mkeys button{min-width:40px;height:36px;padding:0 8px;border:1px solid var(--line);border-radius:7px;background:var(--sheet);color:var(--ink);font:inherit;font-size:15px;cursor:pointer;touch-action:manipulation}
+.mkeys .lbl{width:100%;font-size:12px;color:var(--muted)}
 .ans{display:flex;align-items:center;gap:6px}
 .ans span{font-family:var(--f-mono);font-size:13px;width:26px;text-align:right;color:var(--muted);flex:none}
 .ans input{padding:7px 8px;font-variant-numeric:tabular-nums}
@@ -160,25 +172,58 @@ function renderHome(){
 }
 
 const qn=(ex,i)=>(ex.start||1)+i;
+const CIRC=['','①','②','③','④','⑤'];
+/* Question types: stored by the teacher page; for older exams, a pair of identical hashes means "③|3" (multiple choice). */
+function qtypes(ex){if(Array.isArray(ex.types)&&ex.types.length===ex.hashes.length)return ex.types;
+  return ex.hashes.map(h=>h.length>=2&&h.every(x=>x===h[0])?'mc':'sa')}
+function keyTypes(key){return key.map(k=>/[①②③④⑤]/.test(k)?(/[①②③④⑤]\s*,/.test(k)?'mcm':'mc'):'sa')}
+/* [label, text inserted, aria name, caret steps back] */
+const MKEYS=[['a/b','/','분수'],['x²','^2','제곱'],['xⁿ','^','거듭제곱'],['√','√','루트'],['( )','()','괄호',1],['−','-','빼기'],['π','π','파이'],['±','±','플러스마이너스'],['x','x','x'],['y','y','y'],['a','a','a'],['≤','≤','작거나 같다'],['≥','≥','크거나 같다'],['°','°','도'],[',',',','쉼표'],['⌫','⌫','지우기']];
+function mathInner(t){return t.replace(/√\(([^()]*)\)/g,'√<span class="rt">$1</span>').replace(/√([0-9a-zπ.]+)/gi,'√<span class="rt">$1</span>')
+  .replace(/\^\(([^()]*)\)/g,'<sup>$1</sup>').replace(/\^(-?[0-9a-zπ]+)/gi,'<sup>$1</sup>')}
+function mathView(v){let t=esc(String(v||''));if(!t)return '';
+  const OP='(\\([^()]+\\)|√?[0-9a-zπ.]+(?:\\^-?[0-9a-z]+)?)';const strip=x=>/^\(.*\)$/.test(x)?x.slice(1,-1):x;
+  t=t.replace(new RegExp(OP+'/'+OP,'gi'),(m,p,q)=>`<span class="frac"><span>${mathInner(strip(p))}</span><span>${mathInner(strip(q))}</span></span>`);
+  return mathInner(t).replace(/-/g,'−')}
 function renderExam(ex){
   if(!ex){view.exam=null;return render()}
   const pr=prog[ex.id]||(prog[ex.id]={answers:Array(ex.hashes.length).fill(''),attempts:[],start:Date.now(),done:null});
   const back=h(`<button class="btn ghost small back">← 시험 목록</button>`);back.onclick=()=>{view.exam=null;render()};app.appendChild(back);
   if(pr.done) return renderCert(ex,pr);
-  const lay=h(`<div class="exam-layout"><section class="panel"><h2>${esc(ex.title)}</h2><div class="sheet-imgs"></div></section><aside class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span><span class="hint">${esc(prog._name)}</span></div><div class="ans-grid"></div><div id="vbox"></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">분수는 1/2, 객관식은 번호(③ 또는 3)로 적어요.</p></aside></div>`);
+  const lay=h(`<div class="exam-layout"><section class="panel"><h2>${esc(ex.title)}</h2><div class="sheet-imgs"></div></section><aside class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span><span class="hint">${esc(prog._name)}</span></div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 아래 수식 버튼으로 분수·제곱·루트를 넣어요. 입력칸 아래에 실제 모양이 보여요.</p></aside></div>`);
   const imgs=lay.querySelector('.sheet-imgs');
   if(ex.images.length) ex.images.forEach((src,i)=>{const im=document.createElement('img');im.src=src;im.alt=`시험지 ${i+1}쪽`;imgs.appendChild(im)});
   else imgs.appendChild(h(`<div class="noimg">시험지는 종이로 받았어요. 종이 시험지를 보고 오른쪽에 답을 적으세요.</div>`));
   const grid=lay.querySelector('.ans-grid');
-  pr.answers.forEach((v,i)=>{const a=h(`<label class="ans"><span>${qn(ex,i)}</span><input type="text" id="a${i}" autocomplete="off" value="${esc(v)}"></label>`);
-    a.querySelector('input').oninput=e=>{pr.answers[i]=e.target.value;saveProg()};grid.appendChild(a)});
+  const types=qtypes(ex);let lastIn=null;
+  pr.answers.forEach((v,i)=>{
+    if(types[i]!=='sa'){const multi=types[i]==='mcm';const sel=new Set(String(v).split(',').filter(Boolean));
+      const a=h(`<div class="ans" role="group" aria-label="${qn(ex,i)}번"><span>${qn(ex,i)}</span><div class="mc">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-pressed="${sel.has(String(n))}" aria-label="${n}번">${CIRC[n]}</button>`).join('')}</div></div>`);
+      a.querySelector('.mc').onclick=e=>{const btn=e.target.closest('button');if(!btn)return;const n=btn.dataset.n;
+        if(multi){sel.has(n)?sel.delete(n):sel.add(n)}else{const on=sel.has(n);sel.clear();if(!on)sel.add(n)}
+        a.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',sel.has(x.dataset.n)));
+        pr.answers[i]=[...sel].sort().join(',');saveProg()};
+      grid.appendChild(a)}
+    else{const a=h(`<label class="ans"><span>${qn(ex,i)}</span><div class="sa"><input type="text" id="a${i}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(v)}"><div class="mprev" aria-hidden="true"></div></div></label>`);
+      const inp=a.querySelector('input'),pv=a.querySelector('.mprev');pv.innerHTML=mathView(v);
+      inp.oninput=()=>{pr.answers[i]=inp.value;pv.innerHTML=mathView(inp.value);saveProg()};
+      inp.onfocus=()=>{lastIn=inp;mk.hidden=false};
+      grid.appendChild(a)}});
+  const mk=lay.querySelector('#mkeys');
+  if(types.includes('sa')){
+    mk.innerHTML='<span class="lbl">수식 넣기 · 주관식 칸을 누른 뒤 사용해요</span>'+MKEYS.map((k,j)=>`<button type="button" data-j="${j}" aria-label="${k[2]}">${k[0]}</button>`).join('');
+    mk.addEventListener('pointerdown',e=>{if(e.target.closest('button'))e.preventDefault()});
+    mk.onclick=e=>{const b=e.target.closest('button');if(!b||!lastIn)return;const k=MKEYS[+b.dataset.j];
+      if(k[1]==='⌫'){const p=lastIn.selectionStart||0,q=lastIn.selectionEnd||0;if(p===q&&p>0)lastIn.setRangeText('',p-1,p,'end');else lastIn.setRangeText('',p,q,'end')}
+      else{const p=lastIn.selectionStart??lastIn.value.length,q=lastIn.selectionEnd??p;lastIn.setRangeText(k[1],p,q,'end');if(k[3])lastIn.setSelectionRange(lastIn.selectionStart-k[3],lastIn.selectionStart-k[3])}
+      lastIn.dispatchEvent(new Event('input'));lastIn.focus()};}
   app.appendChild(lay);
   const gbtn=lay.querySelector('#grade'), vbox=lay.querySelector('#vbox');
   const last=pr.attempts[pr.attempts.length-1];
   if(last) showVerdict(ex,pr,vbox,gbtn,grid,last);
   gbtn.onclick=async()=>{
     const blank=pr.answers.findIndex(a=>!norm(a));
-    if(blank>=0){toast(`${qn(ex,blank)}번 답이 비어 있어요`);grid.querySelectorAll('input')[blank].focus();return}
+    if(blank>=0){toast(`${qn(ex,blank)}번 답이 비어 있어요`);const el=grid.children[blank];el.scrollIntoView({block:'center'});const f=el.querySelector('input,button');f&&f.focus();return}
     gbtn.disabled=true;
     const wrong=[];for(let i=0;i<ex.hashes.length;i++){const hv=await hashOf(ex.salt,i,pr.answers[i]);if(!ex.hashes[i].includes(hv))wrong.push(i)}
     const at={w:wrong,a:Object.fromEntries(wrong.map(i=>[i,pr.answers[i]])),t:Date.now()};pr.attempts.push(at);
@@ -297,7 +342,7 @@ function renderTeacher(){
   $('#ttitle').value=draft.title;$('#tkey').value=draft.key;
   const showThumbs=()=>{$('#thumbs').innerHTML=draft.images.map(s=>`<img src="${s}" alt="">`).join('');$('#tclear').hidden=!draft.images.length};
   const showPrev=()=>{const a=draft.analysis;$('#anprev').innerHTML=a?`<div class="tlist">${a.questions.map(q=>`<div class="titem"><div style="min-width:0"><strong>${q.no}번</strong> <span class="hint">${esc(q.concept||'')}</span><div class="hint">예상 오답 ${(q.mistakes||[]).map(m=>esc(m.answer)+' ('+esc(m.type)+')').join(', ')}</div></div></div>`).join('')}</div>`:''};
-  const cnt=()=>{const n=parseKey(draft.key).length,s0=keyStart(draft.key);$('#kcount').textContent=(n?`${s0}~${s0+n-1}번 ${n}문항 인식됨 · `:'')+'정답이 여러 개면 | 로 나눠요 (예: 1/2|0.5). 띄어쓰기와 대소문자는 구별하지 않아요.'};
+  const cnt=()=>{const k=parseKey(draft.key),n=k.length,s0=keyStart(draft.key),t=keyTypes(k),m=t.filter(x=>x!=='sa').length;$('#kcount').textContent=(n?`${s0}~${s0+n-1}번 ${n}문항 인식됨 (객관식 ${m} · 주관식 ${n-m}) · `:'')+'객관식은 ③처럼 동그라미 번호로 적어야 학생 화면에 번호 버튼이 나와요. 정답이 여러 개면 | 로 나눠요 (예: 1/2|0.5).'};
   const invalidate=()=>{if(draft.analysis){draft.analysis=null;showPrev();$('#anstat').textContent='정답이나 사진이 바뀌어서 분석을 다시 만들어야 해요.'}};
   showThumbs();showPrev();cnt();if(draft.analysis)$('#anstat').textContent=`${draft.analysis.questions.length}문항 분석 완료. 아래에서 확인하고 올리세요.`;
   $('#ttitle').oninput=e=>draft.title=e.target.value;
@@ -359,7 +404,7 @@ function renderTeacher(){
     const salt=Math.random().toString(36).slice(2,10);
     const alts=key.map(k=>k.split('|').filter(s=>norm(s)));
     const hashes=[];for(let i=0;i<alts.length;i++)hashes.push(await Promise.all(alts[i].map(a=>hashOf(salt,i,a))));
-    const ex={id:'e'+Date.now().toString(36),title:draft.title.trim(),salt,hashes,images:draft.images,start:keyStart(draft.key)};
+    const ex={id:'e'+Date.now().toString(36),title:draft.title.trim(),salt,hashes,images:draft.images,start:keyStart(draft.key),types:keyTypes(key)};
     if(draft.analysis)ex.lock=await lockAnalysis(salt,alts,draft.analysis);
     STATE.exams.unshift(ex);
     if(JSON.stringify(STATE).length>14.5e6){STATE.exams.shift();$('#tsave').disabled=false;toast('저장 공간이 부족해요. 지난 시험을 지우고 다시 올려 주세요');return}
