@@ -288,7 +288,7 @@ function renderExam(ex){
   if(!ex){view.exam=null;return render()}
   if(!examVisible(ex)){if(STATE.hubLink){location.replace(STATE.hubLink);return}view.exam=null;return render()}
   const pr=prog[ex.id]||(prog[ex.id]={answers:Array(ex.hashes.length).fill(''),attempts:[],start:Date.now(),done:null});
-  const back=h(`<button class="btn ghost small back">← 시험 목록</button>`);back.onclick=()=>{sessEnd();view.exam=null;render()};app.appendChild(back);
+  const back=h(`<button class="btn ghost small back">← 시험 목록</button>`);back.onclick=()=>{sessEnd();if(STATE.hubLink){location.href=STATE.hubLink;return}view.exam=null;render()};app.appendChild(back);
   if(!pr.done)sessStart(ex);
   if(pr.done) return renderCert(ex,pr);
   const lay=h(`<div class="exam-layout"><section class="panel"><h2>${esc(ex.title)}</h2><div class="sheet-imgs"></div></section><aside class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span><span class="hint">${esc(myName())}</span></div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><div class="rules" id="rules"><strong>채점 규칙</strong><span>다 맞을 때까지 몇 번이든 채점할 수 있지만, 틀리면 다음 채점까지 기다려야 해요.</span><div class="rsteps">${[1,2,3,4,5].map(n=>`<span><b>${n}차 후</b>${waitMin(n)}분</span>`).join('')}<span><b>그다음</b>5분씩 더</span></div><span>답 하나만 바꿔 보지 말고, 처음부터 다시 풀어서 한 번에 맞히는 게 가장 빨라요.</span></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 아래 수식 버튼으로 분수·제곱·루트를 넣어요. 입력칸 아래에 실제 모양이 보여요.</p></aside></div>`);
