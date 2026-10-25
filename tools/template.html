@@ -140,6 +140,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .kt small{font-weight:500;font-size:10px;color:var(--muted)}.kt.mc{border-color:var(--blue)}.kt.mc small{color:var(--blue)}.kt.mcm{border-color:var(--blue);background:var(--blue-soft)}.kt.mcm small{color:var(--blue)}
 .rtime{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;flex:none;min-width:0}
 @media (max-width:480px){.rrow{flex-wrap:wrap}.rtime{width:calc(100% - 46px)}}
+.wait{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:9px;background:var(--hi-soft);border:1px solid var(--hi)}
+.wait-t{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)}
+.wait-bar{height:6px;border-radius:99px;background:var(--sheet);overflow:hidden}.wait-bar i{display:block;height:100%;width:0;background:var(--hi);transition:width 1s linear}
 .back{align-self:flex-start}
 @media (prefers-reduced-motion:no-preference){.verdict,.cert{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.98)}to{transform:none}}}
 </style>
@@ -313,15 +316,25 @@ function renderExam(ex){
   };
 }
 
+/* Wait before the next grading: 5 min after the 1st and 2nd, then 10, 15, 20… (5 more each time) */
+const waitMin=n=>n<=2?5:(n-1)*5;
+let waitTimer=null;
 function showVerdict(ex,pr,vbox,gbtn,grid,at){
   pr.checked=pr.checked||[];
-  const v=h(`<div class="verdict bad"><div class="big">아직 다 맞지 않았어요</div><p style="margin:0">몇 번이 틀렸는지, 몇 개가 틀렸는지는 알려주지 않아요. 1번부터 끝까지 다시 확인하고 다시 채점하세요.</p><div class="checks"></div><div class="log"></div></div>`);
+  clearInterval(waitTimer);
+  const until=at.t+waitMin(pr.attempts.length)*60000;
+  const v=h(`<div class="verdict bad"><div class="big">아직 다 맞지 않았어요</div><p style="margin:0">몇 번이 틀렸는지, 몇 개가 틀렸는지는 알려주지 않아요. 1번부터 끝까지 다시 확인하고 다시 채점하세요.</p><div class="wait" id="wait"><div class="wait-t"></div><div class="wait-bar"><i></i></div><p class="hint" style="margin:0">답을 하나씩 바꿔 보는 대신 다시 풀어 보라고 다음 채점까지 ${waitMin(pr.attempts.length)}분을 기다려요. 채점할수록 기다리는 시간이 늘어나요.</p></div><div class="checks"></div><div class="log"></div></div>`);
   const cw=v.querySelector('.checks');
   CHECKS.forEach((c,i)=>{const l=h(`<label class="check"><input type="checkbox" id="c${i}" ${pr.checked.includes(i)?'checked':''}><span>${c}</span></label>`);
     l.querySelector('input').onchange=e=>{pr.checked=pr.checked.filter(x=>x!==i);if(e.target.checked)pr.checked.push(i);saveProg();upd()};cw.appendChild(l)});
   v.querySelector('.log').innerHTML=pr.attempts.map((a,i)=>`<b>${i+1}차 다시 확인</b>`).join('');
   vbox.innerHTML='';vbox.appendChild(v);
-  const upd=()=>{const ok=pr.checked.length===CHECKS.length;gbtn.disabled=!ok;gbtn.textContent=ok?`${pr.attempts.length+1}차 채점하기`:'검토를 모두 체크해야 다시 채점할 수 있어요'};upd();
+  const total=until-at.t,wt=v.querySelector('.wait-t'),wb=v.querySelector('.wait-bar i'),wbox=v.querySelector('#wait');
+  const upd=()=>{const left=until-Date.now(),checked=pr.checked.length===CHECKS.length;
+    if(left>0){const m=Math.floor(left/60000),sec=Math.floor(left%60000/1000);wt.textContent=`다음 채점까지 ${m}:${String(sec).padStart(2,'0')}`;wb.style.width=Math.round((1-left/total)*100)+'%';
+      gbtn.disabled=true;gbtn.textContent=`${m}분 ${String(sec).padStart(2,'0')}초 뒤에 채점할 수 있어요`}
+    else{clearInterval(waitTimer);wbox.hidden=true;gbtn.disabled=!checked;gbtn.textContent=checked?`${pr.attempts.length+1}차 채점하기`:'검토를 모두 체크해야 다시 채점할 수 있어요'}};
+  upd();if(until>Date.now())waitTimer=setInterval(()=>{if(!document.body.contains(gbtn)){clearInterval(waitTimer);return}upd()},1000);
 }
 
 /* ---------- crypto for the locked AI analysis ---------- */
