@@ -75,6 +75,11 @@ th,td{text-align:left;padding:7px 8px;border-top:1px solid var(--line);vertical-
 .trow{display:grid;grid-template-columns:120px minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:14px}
 .tbar{height:9px;background:var(--grid);border-radius:99px;overflow:hidden}.tbar i{display:block;height:100%;background:var(--red)}
 .trow b{text-align:right}
+.opts{display:flex;flex-wrap:wrap;gap:6px}.opts .lbl{width:100%;font-size:12px;color:var(--muted)}
+.opt{cursor:pointer}.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt span{display:inline-block;padding:5px 11px;border-radius:99px;border:1px solid var(--line);font-size:13px;background:var(--sheet);color:var(--muted)}
+.opt input:checked+span{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
+.opt input:focus-visible+span{outline:2px solid var(--blue);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -97,6 +102,8 @@ const key=(c,n)=>c+'|'+n;
 const J=s=>{try{return JSON.parse(s)}catch(e){return null}};
 
 let DATA=null, sel=null;
+const OPTS=[['days','공부한 날 수'],['dates','공부한 날짜'],['time','총 푼 시간'],['count','완료한 시험 수'],['exams','시험별 기록'],['examDate','└ 완료한 날짜'],['attempts','└ 채점 횟수'],['first','└ 처음 틀린 문항 수'],['examTime','└ 시험별 푼 시간'],['tally','자주 한 실수'],['method','공부 방식 설명']];
+const popt=Object.assign({days:true,dates:true,time:true,count:true,exams:true,examDate:true,attempts:true,first:true,examTime:true,tally:true,method:true},J(ls.get('dabogi.t.opts','{}'))||{});
 let from=ls.get('dabogi.t.from',ymd(Date.now()-27*864e5)), to=ls.get('dabogi.t.to',ymd(Date.now())), clsF=ls.get('dabogi.t.cls','');
 
 function header(){return `<header><h1>다시보기 <em>학습 기록</em></h1><p class="sub">학생별로 언제, 얼마나, 몇 번 만에 풀었는지 봐요. 학부모님께 보낼 요약문도 만들 수 있어요.</p></header>`}
@@ -186,7 +193,8 @@ function renderDetail(det,c,n,rec){
   <div><div class="label" style="margin-bottom:6px">시험별 기록</div>${rec.exams.length?`<div class="tbl"><table><thead><tr><th>시험</th><th>처음 시작</th><th>결과</th><th>채점</th><th>처음 틀린 수</th><th>푼 시간</th></tr></thead><tbody>${rec.exams.map(e=>`<tr><td>${esc(e.title)}</td><td>${md(e.first)} ${hm(e.first)}</td><td>${e.done?`<span class="chip ok">${md(e.done)} ${hm(e.done)} 완료</span>`:'<span class="chip warn">진행 중</span>'}</td><td>${e.attempts||0}회</td><td>${e.firstWrong==null?'-':e.firstWrong+'개 / '+(e.total||'?')}</td><td>${dur(e.runSec||e.time)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">이 기간에 푼 시험이 없어요.</p>'}</div>
   ${tk.length?`<div><div class="label" style="margin-bottom:6px">자주 한 실수 (AI 분석 기준)</div><div class="tally">${tk.map(([k,v])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(v/tk[0][1]*100)}%"></i></span><b>${v}번</b></div>`).join('')}</div></div>`:''}
   <div><div class="label" style="margin-bottom:6px">공부한 순서대로</div><div class="timeline"></div></div>
-  <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름 (예: ○○수학학원)" value="${esc(ls.get('dabogi.t.acad',''))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
+  <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름 (예: ○○수학학원)" value="${esc(ls.get('dabogi.t.acad',''))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div>
+  <div class="opts" id="opts"><span class="lbl">요약문에 넣을 내용 · 체크한 것만 들어가요</span>${OPTS.map(o=>`<label class="opt"><input type="checkbox" data-k="${o[0]}" ${popt[o[0]]?'checked':''}><span>${o[1]}</span></label>`).join('')}</div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
   const tl=det.querySelector('.timeline');const byDay={};
   rec.sessions.forEach(s=>{(byDay[ymd(s.start)]=byDay[ymd(s.start)]||[]).push(s)});
   const dk=Object.keys(byDay).sort().reverse();
@@ -195,19 +203,28 @@ function renderDetail(det,c,n,rec){
     ss.forEach(s=>{const ev=s.events.filter(e=>e.ev==='attempt'||e.ev==='done').map(e=>`<span class="${e.ev==='done'?'done':''}">${hm(e.at)} ${e.attempt}차 ${e.ev==='done'?'다 맞음':`틀림 ${e.wrongCount}개${e.wrong?' ('+esc(e.wrong)+'번)':''}`}</span>`).join('');
       g.appendChild(h(`<div class="sess"><span class="when">${hm(s.start)}–${hm(s.end)}</span><div><strong>${esc(s.exam)}</strong> <span class="hint">화면을 보고 있던 시간 ${dur(s.active)}</span><div class="ev">${ev||'<span>채점 없이 시험지만 봄</span>'}</div></div></div>`))});
     tl.appendChild(g)});
-  const make=()=>{const acad=det.querySelector('#acad').value.trim(),cmt=det.querySelector('#cmt').value.trim();
+  const make=()=>{const acad=det.querySelector('#acad').value.trim(),cmt=det.querySelector('#cmt').value.trim(),o=popt;
+    const dayKeys=Object.keys(rec.days).sort();
     const L=[];L.push(`${acad?'['+acad+'] ':''}${n} 학생 학습 기록 (${md(from)} ~ ${md(to)})`);L.push('');
-    L.push(`· 공부한 날: ${Object.keys(rec.days).length}일${Object.keys(rec.days).length?' ('+Object.keys(rec.days).sort().map(k=>md(k+'T00:00')).join(', ')+')':''}`);
-    L.push(`· 문제를 푼 시간: 모두 ${dur(rec.total)}`);
-    L.push(`· 완료한 시험: ${done.length}개${rec.exams.length>done.length?` (시작했지만 아직 못 끝낸 시험 ${rec.exams.length-done.length}개)`:''}`);
-    rec.exams.forEach(e=>L.push(`  - ${e.title}: ${e.done?`${md(e.done)} 완료, ${e.attempts}번 채점 만에 모두 맞힘`:'진행 중'}${e.firstWrong!=null?`, 처음 채점에서 ${e.firstWrong}문항 틀림`:''}, ${dur(e.runSec||e.time)}`));
-    if(tk.length)L.push(`· 자주 한 실수: ${tk.slice(0,3).map(([k,v])=>`${k} ${v}번`).join(', ')}`);
-    L.push('');L.push('틀린 문제를 알려주지 않고, 스스로 처음부터 다시 검토해서 모두 맞힐 때까지 푸는 방식으로 공부했어요.');
+    if(o.days)L.push(`· 공부한 날: ${dayKeys.length}일${o.dates&&dayKeys.length?' ('+dayKeys.map(k=>md(k+'T00:00')).join(', ')+')':''}`);
+    else if(o.dates&&dayKeys.length)L.push(`· 공부한 날짜: ${dayKeys.map(k=>md(k+'T00:00')).join(', ')}`);
+    if(o.time)L.push(`· 문제를 푼 시간: 모두 ${dur(rec.total)}`);
+    if(o.count)L.push(`· 완료한 시험: ${done.length}개${rec.exams.length>done.length?` (시작했지만 아직 못 끝낸 시험 ${rec.exams.length-done.length}개)`:''}`);
+    if(o.exams&&rec.exams.length){if(!o.count)L.push('· 푼 시험');
+      rec.exams.forEach(e=>{const bits=[e.done?(o.examDate?`${md(e.done)} 완료`:'완료'):'진행 중'];
+        if(o.attempts&&e.done)bits.push(`${e.attempts}번 채점 만에 모두 맞힘`);
+        if(o.first&&e.firstWrong!=null)bits.push(`처음 채점에서 ${e.firstWrong}문항 틀림`);
+        if(o.examTime)bits.push(dur(e.runSec||e.time));
+        L.push(`  - ${e.title}: ${bits.join(', ')}`)})}
+    if(o.tally&&tk.length)L.push(`· 자주 한 실수: ${tk.slice(0,3).map(([k,v])=>`${k} ${v}번`).join(', ')}`);
+    if(o.method){L.push('');L.push('틀린 문제를 알려주지 않고, 스스로 처음부터 다시 검토해서 모두 맞힐 때까지 푸는 방식으로 공부했어요.')}
     if(cmt){L.push('');L.push('선생님 한마디: '+cmt)}
+    if(L.length<=2)L.push('(위에서 넣을 내용을 하나 이상 체크해 주세요)');
     det.querySelector('#pmsg').value=L.join('\n')};
   make();
   det.querySelector('#acad').oninput=e=>{ls.set('dabogi.t.acad',e.target.value);make()};
   det.querySelector('#cmt').oninput=make;
+  det.querySelector('#opts').onchange=e=>{const k=e.target.dataset.k;if(!k)return;popt[k]=e.target.checked;ls.set('dabogi.t.opts',JSON.stringify(popt));make()};
   det.querySelector('#copy').onclick=async()=>{const ta=det.querySelector('#pmsg');try{await navigator.clipboard.writeText(ta.value);toast('복사했어요')}catch(e){ta.focus();ta.select();try{document.execCommand('copy');toast('복사했어요')}catch(_){toast('글자를 길게 눌러 직접 복사해 주세요')}}};
 }
 
