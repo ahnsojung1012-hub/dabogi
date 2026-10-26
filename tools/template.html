@@ -67,28 +67,43 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .chip{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--blue-soft);color:var(--blue)}
 .chip.done{background:var(--green-soft);color:var(--green)}
 .chip.ex{background:var(--grid);color:var(--muted)}
-.exam-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
-@media (max-width:760px){.exam-layout{grid-template-columns:minmax(0,1fr)}}
+.exam-layout{display:flex;flex-direction:column;gap:12px}
+.exbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 10px 16px;border-radius:12px;background:var(--band);color:var(--band-ink);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.exbar .hint{color:var(--band-ink);opacity:.75}
+.exbar-t{font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheetbtn{flex:none;background:var(--hi);border-color:var(--hi);color:#13283b;padding:10px 14px;font-size:15px;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.sheetbtn small{font-weight:500;font-size:11px}
+.sheetview{position:fixed;inset:0;z-index:50;background:var(--paper);display:flex;flex-direction:column}
+.sv-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));background:var(--band);color:var(--band-ink)}
+.sv-bar strong{flex:1;min-width:0;font-family:var(--f-display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sv-bar .hint{color:var(--band-ink);opacity:.8;font-variant-numeric:tabular-nums}
+.sv-bar .btn{background:var(--hi);border-color:var(--hi);color:#13283b;padding:10px 14px}
+.sv-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px max(8px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.sv-body .sheet-imgs{max-width:900px;margin:0 auto}
+body.noscroll{overflow:hidden}
 .sheet-imgs{display:flex;flex-direction:column;gap:10px}
 .sheet-imgs img{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
 .noimg{border:1px dashed var(--line);border-radius:8px;padding:28px;text-align:center;color:var(--muted)}
-.answers{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
-.ans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 14px}
+.answers{padding-left:20px}
+.ans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px 22px}
 .ans{min-width:0}
-.mc{display:flex;gap:4px;flex:1;min-width:0}
-.mc button{flex:1;min-width:0;height:36px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-size:17px;cursor:pointer;padding:0}
+.mc{display:flex;gap:6px;flex:1;min-width:0}
+.mc button{flex:1;min-width:0;height:52px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-size:26px;line-height:1;cursor:pointer;padding:0;touch-action:manipulation}
+.mc button:active{transform:scale(.96)}
 .mc button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--sheet)}
 .sa{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.mprev{font-size:15px;min-height:1.4em;color:var(--blue);font-family:"Times New Roman",serif;line-height:1.4;overflow-x:auto;white-space:nowrap}
+.mprev{font-size:19px;min-height:1.4em;color:var(--blue);font-family:"Times New Roman",serif;line-height:1.4;overflow-x:auto;white-space:nowrap}
 .mprev sup{font-size:.7em}
 .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.85em;line-height:1.05;margin:0 2px}.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 2px}
 .rt{border-top:1px solid currentColor;padding-left:1px}
-.mkeys{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--paper);position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
-.mkeys button{min-width:40px;height:36px;padding:0 8px;border:1px solid var(--line);border-radius:7px;background:var(--sheet);color:var(--ink);font:inherit;font-size:15px;cursor:pointer;touch-action:manipulation}
-.mkeys .lbl{width:100%;font-size:12px;color:var(--muted)}
-.ans{display:flex;align-items:center;gap:6px}
-.ans span{font-family:var(--f-mono);font-size:13px;width:26px;text-align:right;color:var(--muted);flex:none}
-.ans input{padding:7px 8px;font-variant-numeric:tabular-nums}
+.mkeys{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--paper);position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+.mkeys button{height:48px;padding:0 4px;border:1px solid var(--line);border-radius:9px;background:var(--sheet);color:var(--ink);font:inherit;font-size:19px;cursor:pointer;touch-action:manipulation}
+.mkeys .lbl{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.ans{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.ans>span{font-family:var(--f-display);font-weight:700;font-size:22px;width:34px;text-align:right;color:var(--ink);flex:none}
+.ans input{height:52px;padding:8px 12px;font-size:20px;font-variant-numeric:tabular-nums;border-radius:12px;border-width:1.5px}
+#grade{width:100%;padding:16px;font-size:18px}
+.ans>span small{display:block;font-family:var(--f-body);font-size:10px;font-weight:700;color:var(--blue);line-height:1.1}
 .ans.wrong input{border-color:var(--red);background:var(--red-soft)}
 .verdict{border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .verdict.bad{background:var(--red-soft);border:1px solid var(--red)}
@@ -291,15 +306,23 @@ function renderExam(ex){
   const back=h(`<button class="btn ghost small back">← 시험 목록</button>`);back.onclick=()=>{sessEnd();if(STATE.hubLink){location.href=STATE.hubLink;return}view.exam=null;render()};app.appendChild(back);
   if(!pr.done)sessStart(ex);
   if(pr.done) return renderCert(ex,pr);
-  const lay=h(`<div class="exam-layout"><section class="panel"><h2>${esc(ex.title)}</h2><div class="sheet-imgs"></div></section><aside class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span><span class="hint">${esc(myName())}</span></div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><div class="rules" id="rules"><strong>채점 규칙</strong><span>다 맞을 때까지 몇 번이든 채점할 수 있지만, 틀리면 다음 채점까지 기다려야 해요.</span><div class="rsteps">${[1,2,3,4,5].map(n=>`<span><b>${n}차 후</b>${waitMin(n)}분</span>`).join('')}<span><b>그다음</b>5분씩 더</span></div><span>답 하나만 바꿔 보지 말고, 처음부터 다시 풀어서 한 번에 맞히는 게 가장 빨라요.</span></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 아래 수식 버튼으로 분수·제곱·루트를 넣어요. 입력칸 아래에 실제 모양이 보여요.</p></aside></div>`);
+  const lay=h(`<div class="exam-layout"><div class="exbar"><div style="min-width:0"><div class="exbar-t">${esc(ex.title)}</div><div class="hint">${esc(myName())} · ${ex.hashes.length}문항</div></div>${ex.images.length?`<button class="btn sheetbtn" id="opensheet" type="button">시험지 보기 <small>${ex.images.length}쪽</small></button>`:''}</div>
+  <div class="sheetview" id="sheetview" hidden role="dialog" aria-modal="true" aria-label="시험지"><div class="sv-bar"><strong>${esc(ex.title)}</strong><span class="hint" id="svpage"></span><button class="btn" id="closesheet" type="button">답안지로 돌아가기</button></div><div class="sv-body"><div class="sheet-imgs"></div><p class="hint" style="text-align:center">두 손가락으로 벌리면 크게 볼 수 있어요.</p></div></div>
+  <section class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span>${ex.images.length?'':'<span class="hint">종이 시험지를 보고 답을 적어요</span>'}</div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><div class="rules" id="rules"><strong>채점 규칙</strong><span>다 맞을 때까지 몇 번이든 채점할 수 있지만, 틀리면 다음 채점까지 기다려야 해요.</span><div class="rsteps">${[1,2,3,4,5].map(n=>`<span><b>${n}차 후</b>${waitMin(n)}분</span>`).join('')}<span><b>그다음</b>5분씩 더</span></div><span>답 하나만 바꿔 보지 말고, 처음부터 다시 풀어서 한 번에 맞히는 게 가장 빨라요.</span></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 칸을 누르면 나오는 수식 버튼으로 분수·제곱·루트를 넣어요. 시험지는 위의 <b>시험지 보기</b>로 언제든 열 수 있어요.</p></section></div>`);
   const imgs=lay.querySelector('.sheet-imgs');
   if(ex.images.length) ex.images.forEach((src,i)=>{const im=document.createElement('img');im.src=src;im.alt=`시험지 ${i+1}쪽`;imgs.appendChild(im)});
-  else imgs.appendChild(h(`<div class="noimg">시험지는 종이로 받았어요. 종이 시험지를 보고 오른쪽에 답을 적으세요.</div>`));
+  const sv=lay.querySelector('#sheetview'),svb=lay.querySelector('.sv-body');let svTop=0;
+  if(ex.images.length){
+    const open=()=>{sv.hidden=false;document.body.classList.add('noscroll');svb.scrollTop=svTop;updPage();lay.querySelector('#closesheet').focus()};
+    const close=()=>{svTop=svb.scrollTop;sv.hidden=true;document.body.classList.remove('noscroll');lay.querySelector('#opensheet').focus()};
+    const updPage=()=>{const ims=[...imgs.querySelectorAll('img')];let k=0;ims.forEach((im,i)=>{if(im.offsetTop-svb.scrollTop<svb.clientHeight/2)k=i});lay.querySelector('#svpage').textContent=`${k+1} / ${ims.length}쪽`};
+    lay.querySelector('#opensheet').onclick=open;lay.querySelector('#closesheet').onclick=close;svb.addEventListener('scroll',updPage,{passive:true});
+    sv.addEventListener('keydown',e=>{if(e.key==='Escape')close()});}
   const grid=lay.querySelector('.ans-grid');
   const types=qtypes(ex);let lastIn=null;
   pr.answers.forEach((v,i)=>{
     if(types[i]!=='sa'){const multi=types[i]==='mcm';const sel=new Set(String(v).split(',').filter(Boolean));
-      const a=h(`<div class="ans" role="group" aria-label="${qn(ex,i)}번"><span>${qn(ex,i)}</span><div class="mc">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-pressed="${sel.has(String(n))}" aria-label="${n}번">${CIRC[n]}</button>`).join('')}</div></div>`);
+      const a=h(`<div class="ans" role="group" aria-label="${qn(ex,i)}번${multi?' (답 여러 개)':''}"><span>${qn(ex,i)}${multi?'<small>여러 개</small>':''}</span><div class="mc">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-pressed="${sel.has(String(n))}" aria-label="${n}번">${CIRC[n]}</button>`).join('')}</div></div>`);
       a.querySelector('.mc').onclick=e=>{const btn=e.target.closest('button');if(!btn)return;const n=btn.dataset.n;
         if(multi){sel.has(n)?sel.delete(n):sel.add(n)}else{const on=sel.has(n);sel.clear();if(!on)sel.add(n)}
         a.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',sel.has(x.dataset.n)));
