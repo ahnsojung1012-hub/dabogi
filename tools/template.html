@@ -97,7 +97,7 @@ body.noscroll{overflow:hidden}
 .mc button:active{transform:scale(.96)}
 .mc button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--sheet)}
 .sa{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.flds{display:flex;gap:10px;flex-wrap:wrap}.fld{display:flex;align-items:center;gap:6px;flex:1;min-width:110px}.fld b{font-family:'Times New Roman',serif;font-style:italic;font-size:18px;white-space:nowrap}.fld input{flex:1;min-width:0}
+.flds{display:flex;gap:10px;flex-wrap:wrap}.fld{display:flex;align-items:center;gap:6px;flex:1;min-width:110px}.fld b{font-family:'Times New Roman',serif;font-style:italic;font-size:18px;white-space:nowrap}.fld input{flex:1;min-width:0}.fsep{align-self:center;font-size:22px;font-weight:700;color:var(--muted)}
 .mprev{font-size:19px;min-height:1.4em;color:var(--blue);font-family:"Times New Roman",serif;line-height:1.4;overflow-x:auto;white-space:nowrap}
 .mprev sup{font-size:.7em}
 .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.85em;line-height:1.05;margin:0 2px}.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 2px}
@@ -230,7 +230,10 @@ const myName=()=>prog._me?prog._me.name:(prog._name||'');
 const gradeOf=c=>{const m=String(c||'').match(/^\s*(\d)/);return m?+m[1]:null};
 const GRADE_LABEL=g=>g>=7&&g<=9?`중${g-6}`:g>=1&&g<=6?`초${g}`:g>=10&&g<=12?`고${g-9}`:'';
 const myGrade=()=>prog._me?gradeOf(prog._me.cls):null;
-const examVisible=ex=>!ex.grade||!myGrade()||ex.grade===myGrade();
+const examVisible=ex=>{const k=prog._me?prog._me.cls+'|'+prog._me.name:'';
+  if(ex.who&&ex.who.length)return !k||ex.who.includes(k);   /* 특정 학생에게만 보이는 시험 */
+  if(k&&ex.hideFor&&ex.hideFor.includes(k))return false;     /* 특정 학생에게는 안 보이는 시험 */
+  return !ex.grade||!myGrade()||ex.grade===myGrade()};
 
 /* ---------- study log: only on hosted student pages that carry STATE.endpoint ---------- */
 const EP=STATE.endpoint||'';
@@ -396,7 +399,7 @@ function keyTypes(key){return key.map(k=>{const alt=k.split('|')[0];const c=(alt
 function mcmCanon(a){const d=[...new Set((String(a).normalize('NFKC').match(/[1-5]/g)||[]))].sort();return d.join(',')}
 const TYPE_LABEL={sa:'주관식',mc:'객관식',mcm:'복수 정답'};
 /* [label, text inserted, aria name, caret steps back] */
-const MKEYS=[['a/b','/','분수'],['x²','^2','제곱'],['xⁿ','^','거듭제곱'],['√','√','루트'],['( )','()','괄호',1],['−','-','빼기'],['π','π','파이'],['±','±','플러스마이너스'],['x','x','x'],['y','y','y'],['a','a','a'],['≤','≤','작거나 같다'],['≥','≥','크거나 같다'],['°','°','도'],[',',',','쉼표'],['⌫','⌫','지우기']];
+const MKEYS=[['a/b','/','분수'],['x²','^2','제곱'],['xⁿ','^','거듭제곱'],['√','√','루트'],['( )','()','괄호',1],['−','-','빼기'],['π','π','파이'],['±','±','플러스마이너스'],['x','x','x'],['y','y','y'],['a','a','a'],['≤','≤','작거나 같다'],['≥','≥','크거나 같다'],['°','°','도'],[':',':','비 (쌍점)'],[',',',','쉼표'],['⌫','⌫','지우기']];
 function mathInner(t){return t.replace(/√\(([^()]*)\)/g,'√<span class="rt">$1</span>').replace(/√([0-9a-zπ.]+)/gi,'√<span class="rt">$1</span>')
   .replace(/\^\(([^()]*)\)/g,'<sup>$1</sup>').replace(/\^(-?[0-9a-zπ]+)/gi,'<sup>$1</sup>')}
 function mathView(v){let t=esc(String(v||''));if(!t)return '';
@@ -459,7 +462,7 @@ function renderExam(ex){
         pr.answers[i]=[...sel].sort().join(',');saveProg()};
       grid.appendChild(a)}
     else if(ex.fields&&ex.fields[i]){const fl=ex.fields[i],parts=String(v||'').split(',');
-      const a=h(`<div class="ans"><span>${qn(ex,i)}</span><div class="sa"><div class="flds">${fl.map((f,k)=>`<label class="fld"><b>${esc(f)} =</b><input type="text" autocomplete="off" spellcheck="false" value="${esc(parts[k]||'')}" aria-label="${qn(ex,i)}번 ${esc(f)}"></label>`).join('')}</div></div></div>`);
+      const a=h(`<div class="ans"><span>${qn(ex,i)}</span><div class="sa"><div class="flds">${fl.map((f,k)=>`${k&&!f?'<span class="fsep">,</span>':''}<label class="fld">${f?`<b>${esc(f)} =</b>`:''}<input type="text" autocomplete="off" spellcheck="false" value="${esc(parts[k]||'')}" aria-label="${qn(ex,i)}번 ${f?esc(f):(k+1)+'번째 칸'}"></label>`).join('')}</div></div></div>`);
       const ins=[...a.querySelectorAll('input')];
       ins.forEach(inp=>{inp.oninput=()=>{pr.answers[i]=ins.map(x=>x.value.replace(/,/g,'')).join(',');saveProg()};inp.onfocus=()=>{lastIn=inp;mk.hidden=false}});
       grid.appendChild(a)}
@@ -568,7 +571,7 @@ function renderCert(ex,pr){
     everWrong.forEach(q=>{
       const mine=pr.attempts.map((a,i)=>a.w.includes(q)?{r:i+1,v:(a.a&&a.a[q])||''}:null).filter(Boolean);
       const A=qmap[q];
-      const rows=mine.map(m=>{const hit=A&&(A.mistakes||[]).find(x=>String(x.answer).split('|').some(v=>norm(v)===norm(m.v)));
+      const rows=mine.map(m=>{const hit=A&&(A.mistakes||[]).find(x=>String(x.answer).split('|').some(v=>unitless(v)===unitless(m.v)));
         if(hit&&hit.type)tally[hit.type]=(tally[hit.type]||0)+1;
         return `<div class="arow"><span class="rno">${m.r}차</span><div style="min-width:0"><div><b class="ans-w">${esc(m.v)}</b>${hit&&hit.type?` <span class="chip warn">${esc(hit.type)}</span>`:''}</div><div class="areason">${hit?esc(hit.reason):A?'예상한 실수 목록에 없는 답이에요. 아래 풀이와 내 풀이를 한 줄씩 비교해 보세요.':''}</div></div></div>`}).join('');
       const card=h(`<div class="wcard"><div class="row" style="justify-content:space-between"><strong>${qn(ex,q)}번${A&&A.concept?` · ${esc(A.concept)}`:''}</strong><span class="hint">고친 답 ${esc(pr.answers[q])}</span></div>
