@@ -164,6 +164,7 @@ body.noscroll{overflow:hidden}
 .rsteps{display:flex;flex-wrap:wrap;gap:4px}
 .rsteps span{display:inline-flex;flex-direction:column;align-items:center;min-width:52px;padding:4px 6px;border-radius:7px;background:var(--sheet);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;color:var(--ink)}
 .rsteps b{font-family:var(--f-body);font-size:11px;font-weight:500;color:var(--muted)}
+.tabhint{margin:-4px 4px 0}
 .maintabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;border-radius:14px;background:var(--sheet);border:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:9}
 .maintabs button{font:inherit;font-weight:700;font-size:16px;padding:12px 8px;border:0;border-radius:10px;background:none;color:var(--muted);cursor:pointer}
 .maintabs button[aria-selected="true"]{background:var(--band);color:var(--band-ink)}
@@ -190,7 +191,7 @@ body.noscroll{overflow:hidden}
 @media (prefers-reduced-motion:no-preference){.verdict,.cert{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.98)}to{transform:none}}}
 </style>
 <main class="wrap" id="app"></main>
-<script type="application/json" id="state">{"exams":[{"id":"emvnzczkt","title":"2-1 블라인드1차","grade":8,"n":25,"np":7,"link":"2-1-blind-1.html?v=mvt7gyqw"}],"studentOnly":true,"hub":true,"v":"mvt7gyqw","endpoint":"https://script.google.com/macros/s/AKfycbyzt_AuvfzMXuLG0IzsM_GzG-Kx7oqzvLBCkQ7eWxhmu_kDD6ETHH4fs39pB_b2kc_5PQ/exec","roster":[{"cls":"7유클리드","name":"구서아"},{"cls":"7유클리드","name":"김민정"},{"cls":"7유클리드","name":"김민하"},{"cls":"7유클리드","name":"김송현"},{"cls":"7유클리드","name":"노원준"},{"cls":"7유클리드","name":"박준서3"},{"cls":"7유클리드","name":"이호준"},{"cls":"7유클리드","name":"임성찬"},{"cls":"7유클리드","name":"최민기"},{"cls":"7유클리드","name":"황창민"},{"cls":"8데카르트1","name":"박소영"},{"cls":"8데카르트1","name":"방서준"},{"cls":"8데카르트1","name":"안석건"},{"cls":"8데카르트1","name":"유아준"},{"cls":"8데카르트1","name":"윤지유2"},{"cls":"8데카르트1","name":"이다현"},{"cls":"8데카르트1","name":"이시우"},{"cls":"8데카르트1","name":"추성민"},{"cls":"8유클리드","name":"권율"},{"cls":"8유클리드","name":"김수현2"},{"cls":"8유클리드","name":"심민관"},{"cls":"8유클리드","name":"윤지유"},{"cls":"8유클리드","name":"이수빈3"},{"cls":"8유클리드","name":"이재하"},{"cls":"8유클리드","name":"임도빈"},{"cls":"8유클리드","name":"정연우2"},{"cls":"8유클리드","name":"정지율"}]}</script>
+<script type="application/json" id="state">{"exams":[{"id":"emvnzczkt","title":"2-1 블라인드1차","grade":8,"n":25,"np":7,"link":"2-1-blind-1.html?v=mvt7l5pl"}],"studentOnly":true,"hub":true,"v":"mvt7l5pl","endpoint":"https://script.google.com/macros/s/AKfycbyzt_AuvfzMXuLG0IzsM_GzG-Kx7oqzvLBCkQ7eWxhmu_kDD6ETHH4fs39pB_b2kc_5PQ/exec","roster":[{"cls":"7유클리드","name":"구서아"},{"cls":"7유클리드","name":"김민정"},{"cls":"7유클리드","name":"김민하"},{"cls":"7유클리드","name":"김송현"},{"cls":"7유클리드","name":"노원준"},{"cls":"7유클리드","name":"박준서3"},{"cls":"7유클리드","name":"이호준"},{"cls":"7유클리드","name":"임성찬"},{"cls":"7유클리드","name":"최민기"},{"cls":"7유클리드","name":"황창민"},{"cls":"8데카르트1","name":"박소영"},{"cls":"8데카르트1","name":"방서준"},{"cls":"8데카르트1","name":"안석건"},{"cls":"8데카르트1","name":"유아준"},{"cls":"8데카르트1","name":"윤지유2"},{"cls":"8데카르트1","name":"이다현"},{"cls":"8데카르트1","name":"이시우"},{"cls":"8데카르트1","name":"추성민"},{"cls":"8유클리드","name":"권율"},{"cls":"8유클리드","name":"김수현2"},{"cls":"8유클리드","name":"심민관"},{"cls":"8유클리드","name":"윤지유"},{"cls":"8유클리드","name":"이수빈3"},{"cls":"8유클리드","name":"이재하"},{"cls":"8유클리드","name":"임도빈"},{"cls":"8유클리드","name":"정연우2"},{"cls":"8유클리드","name":"정지율"}]}</script>
 <script id="main-script">
 (function(){
 const STATE = JSON.parse(document.getElementById('state').textContent);
@@ -250,7 +251,7 @@ const fmtTime=t=>new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeri
 
 function render(){
   app.innerHTML='';
-  const head=h(`<header class="top"><div class="note" aria-hidden="true">x<sup>n</sup>+y<sup>n</sup>=z<sup>n</sup></div><div><span class="acad">페르마 수학학원</span>${STATE.hub?'<h1>시험 <em>대비</em></h1>':'<h1>블라인드 <em>테스트</em></h1>'}<p class="sub">${view.mode==='teacher'?'시험을 올리면 학생들이 이 링크에서 직접 채점해요.':STATE.hub?(TAB==='notes'?'교재에서 틀린 문제 번호만 누르면 그 문제들로 오답노트를 만들어 줘요.':'몇 번이 틀렸는지는 가려져 있어요. 처음부터 다시 보면서 스스로 찾아요.'):'몇 번이 틀렸는지는 가려져 있어요. 처음부터 다시 보면서 스스로 찾아요.'}</p></div></header>`);
+  const head=h(`<header class="top"><div class="note" aria-hidden="true">x<sup>n</sup>+y<sup>n</sup>=z<sup>n</sup></div><div><span class="acad">페르마 수학학원</span>${STATE.hub?'<h1>시험 <em>대비</em></h1>':'<h1>블라인드 <em>테스트</em></h1>'}<p class="sub">${view.mode==='teacher'?'시험을 올리면 학생들이 이 링크에서 직접 채점해요.':STATE.hub?'블라인드 테스트로 실수를 스스로 찾고, 오답노트로 틀린 문제를 다시 풀어요.':'몇 번이 틀렸는지는 가려져 있어요. 처음부터 다시 보면서 스스로 찾아요.'}</p></div></header>`);
   if(canTeach){const tb=h(`<div class="tabs" role="group"><button data-m="student" aria-pressed="${view.mode==='student'}">학생 화면</button><button data-m="teacher" aria-pressed="${view.mode==='teacher'}">선생님</button></div>`);
     tb.onclick=e=>{const m=e.target.dataset.m;if(m){view={mode:m,exam:null};render()}};head.appendChild(tb)}
   app.appendChild(head);
@@ -259,7 +260,8 @@ function render(){
   if(view.exam) return renderExam(STATE.exams.find(x=>x.id===view.exam));
   if(STATE.hub){const tb=h(`<nav class="maintabs" role="tablist"><button role="tab" data-t="blind" aria-selected="${TAB==='blind'}">블라인드 테스트</button><button role="tab" data-t="notes" aria-selected="${TAB==='notes'}">오답노트</button></nav>`);
     tb.onclick=e=>{const t=e.target.closest('button');if(t&&t.dataset.t!==TAB)setTab(t.dataset.t)};app.appendChild(tb);
-    if(TAB==='notes'){if(PICK&&!(noteView&&noteView.note))renderWho();return renderNotes()}}
+    if(TAB==='notes'){if(PICK&&!(noteView&&noteView.note))renderWho();return renderNotes()}
+    app.appendChild(h(`<p class="hint tabhint">몇 번이 틀렸는지는 가려져 있어요. 다 맞을 때까지 처음부터 다시 보면서 스스로 찾아요.</p>`))}
   renderHome();
 }
 
