@@ -163,8 +163,81 @@ async function load(pw,remember){
 function inRange(t){const d=ymd(t);return d>=from&&d<=to}
 
 /* Turn raw rows into per-student study records */
+/* ---------- 오답노트 PDF ---------- */
+let BOOKS=null;
+async function getBooks(){if(BOOKS)return BOOKS;BOOKS=(await(await fetch('notes/books.json?v='+Date.now())).json()).books;return BOOKS}
+/* JPEG 페이지들을 그대로 담는 작은 PDF 작성기 (외부 도구 없이) */
+function jpegPdf(pages){const enc=new TextEncoder(),parts=[],offs=[];let len=0;
+  const push=x=>{const b=typeof x==='string'?enc.encode(x):x;parts.push(b);len+=b.length};
+  const obj=(n,body)=>{offs[n]=len;push(`${n} 0 obj\n`);body();push('\nendobj\n')};
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const N=pages.length,W=595.28,H=841.89;
+  obj(1,()=>push('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2,()=>push(`<< /Type /Pages /Count ${N} /Kids [${pages.map((_,i)=>`${3+i*3} 0 R`).join(' ')}] >>`));
+  pages.forEach((pg,i)=>{const pn=3+i*3,cn=pn+1,im=pn+2;
+    obj(pn,()=>push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im${i} ${im} 0 R >> >> /Contents ${cn} 0 R >>`));
+    const cs=`q ${W} 0 0 ${H} 0 0 cm /Im${i} Do Q`;
+    obj(cn,()=>{push(`<< /Length ${cs.length} >>\nstream\n`);push(cs);push('\nendstream')});
+    obj(im,()=>{push(`<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.data.length} >>\nstream\n`);push(pg.data);push('\nendstream')})});
+  const xref=len,n=3+N*3;
+  push(`xref\n0 ${n}\n0000000000 65535 f \n`+offs.slice(1,n).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join(''));
+  push(`trailer\n<< /Size ${n} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts,{type:'application/pdf'})}
+const canvasJpeg=cv=>{const d=atob(cv.toDataURL('image/jpeg',.88).split(',')[1]);const u=new Uint8Array(d.length);for(let i=0;i<d.length;i++)u[i]=d.charCodeAt(i);return {w:cv.width,h:cv.height,data:u}};
+function saveBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+const loadImg=src=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src});
+function decSel(s){const out=[];String(s||'').split('|').forEach(g=>{const[k,ns]=g.split(':');if(k&&ns)ns.split('.').forEach(n=>out.push(k+':'+n))});return out}
+function notesOf(c,n){return DATA.rows.filter(r=>r.ev==='note'&&String(r.cls)===String(c)&&String(r.name)===String(n)).map(r=>{const x=J(r.extra)||{};return {at:r.at,book:x.b||r.examId,title:r.examTitle,keys:decSel(x.s)}}).sort((a,b)=>b.at-a.at)}
+function ansText(a){return String(a||'').replace(/\{([^}]+)\}/g,'$1')}
+async function makeNotePdf(c,n,note,btn){
+  const old=btn.textContent;btn.disabled=true;
+  try{
+    btn.textContent='준비 중…';
+    const books=await getBooks();
+    const book=books.find(b=>b.id===note.book);if(!book)throw new Error('book');
+    const ks=new Set(note.keys),items=[];
+    book.sets.forEach(s=>s.items.forEach(([no,page,w,hh])=>{if(ks.has(s.key+':'+no))items.push({s,no,page,src:`notes/${book.id}/${s.key}/${no}.jpg`,ans:(book.answers||{})[s.key+':'+no]||''})}));
+    const PW=1240,PH=1754,M=80,CW=PW-2*M,FONT='"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+    const PAGES=[];let pageN=0,cv,x,y;
+    const newPage=()=>{if(cv)PAGES.push(canvasJpeg(cv));
+      cv=document.createElement('canvas');cv.width=PW;cv.height=PH;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,PW,PH);pageN++;y=M;
+      x.fillStyle='#8a94a3';x.font=`22px ${FONT}`;x.textAlign='right';x.fillText(`${c} ${n} · 오답노트 · ${pageN}`,PW-M,PH-40);x.textAlign='left'};
+    const flushLast=()=>PAGES.push(canvasJpeg(cv));
+    newPage();
+    const d=new Date(note.at);
+    x.fillStyle='#13283b';x.fillRect(M,y,CW,150);x.fillStyle='#f4c84a';x.font=`bold 26px ${FONT}`;x.fillText('페르마 수학학원',M+30,y+48);
+    x.fillStyle='#ffffff';x.font=`bold 50px ${FONT}`;x.fillText(`${n} 오답노트`,M+30,y+112);
+    x.font=`24px ${FONT}`;x.textAlign='right';x.fillText(`${c} · ${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,M+CW-30,y+60);x.fillText(`${book.title} · ${items.length}문제`,M+CW-30,y+108);x.textAlign='left';
+    y+=190;
+    let cur='';
+    for(let i=0;i<items.length;i++){const it=items[i];btn.textContent=`만드는 중… ${i+1}/${items.length}`;
+      const im=await loadImg(it.src);
+      const iw=Math.min(im.width*0.66,CW*0.62),ih=im.height*iw/im.width;
+      const head=(it.s.key!==cur?58:0)+44,blockH=head+Math.max(ih,220)+30;
+      if(y+blockH>PH-80){newPage()}
+      if(it.s.key!==cur){cur=it.s.key;x.fillStyle='#1d5b78';x.font=`bold 26px ${FONT}`;x.fillText(it.s.title,M,y+30);x.fillStyle='#d3dbe4';x.fillRect(M,y+44,CW,2);y+=58}
+      x.fillStyle='#c23b2c';x.font=`bold 28px ${FONT}`;x.fillText(`${i+1}.`,M,y+30);x.fillStyle='#566373';x.font=`22px ${FONT}`;x.fillText(`${it.no}번 · ${it.page}쪽`,M+50,y+30);y+=44;
+      x.drawImage(im,M,y,iw,ih);
+      const bx=M+iw+24,bw=CW-iw-24,bh=Math.max(ih,220);
+      x.strokeStyle='#c9d2dc';x.lineWidth=2;x.setLineDash([8,8]);x.strokeRect(bx,y,bw,bh);x.setLineDash([]);x.fillStyle='#93a2b2';x.font=`20px ${FONT}`;x.fillText('풀이',bx+12,y+30);
+      y+=bh+30}
+    newPage();
+    x.fillStyle='#13283b';x.font=`bold 40px ${FONT}`;x.fillText('빠른 정답',M,y+40);y+=80;
+    const cols=2,colW=CW/cols,LH=36;
+    const wrap=t=>{x.font=`24px ${FONT}`;const out=[];let line='';for(const ch of t.split(/(\s+)/)){const tryL=line+ch;if(x.measureText(tryL).width>colW-150&&line.trim()){out.push(line.trim());line=ch.trimStart()}else line=tryL}if(line.trim())out.push(line.trim());return out.length?out:['']};
+    for(let i=0;i<items.length;i+=cols){const row=items.slice(i,i+cols).map(it=>wrap(ansText(it.ans)||'답지에 없음'));
+      const hRow=Math.max(...row.map(r=>r.length))*LH+18;if(y+hRow>PH-90){newPage();y+=10}
+      row.forEach((lines,k)=>{const it=items[i+k],cx=M+k*colW;x.fillStyle='#c23b2c';x.font=`bold 24px ${FONT}`;x.fillText(`${i+k+1}. ${it.no}`,cx,y+26);
+        x.fillStyle='#14202e';x.font=`24px ${FONT}`;lines.forEach((l,j)=>x.fillText(l,cx+140,y+26+j*LH))});
+      x.fillStyle='#e4e9ee';x.fillRect(M,y+hRow-8,CW,1);y+=hRow}
+    flushLast();
+    saveBlob(jpegPdf(PAGES),`${c}_${n}_오답노트_${d.getMonth()+1}월${d.getDate()}일.pdf`);
+    btn.textContent='받았어요';setTimeout(()=>{btn.textContent=old;btn.disabled=false},2500);
+  }catch(e){console.error(e);toast('PDF를 만들지 못했어요. 다시 눌러 주세요.');btn.textContent=old;btn.disabled=false}
+}
+
 function studentRecord(c,n){
-  const rows=DATA.rows.filter(r=>String(r.cls)===String(c)&&String(r.name)===String(n)&&inRange(r.at)).sort((a,b)=>a.at-b.at);
+  const rows=DATA.rows.filter(r=>r.ev!=='note'&&String(r.cls)===String(c)&&String(r.name)===String(n)&&inRange(r.at)).sort((a,b)=>a.at-b.at);
   const sess={};
   rows.forEach(r=>{const k=r.session||('x'+r.at);const s=sess[k]||(sess[k]={id:k,start:r.at,end:r.at,active:0,exam:r.examTitle,examId:r.examId,events:[]});
     s.start=Math.min(s.start,r.at);s.end=Math.max(s.end,r.at);s.active=Math.max(s.active,Number(r.activeSec)||0);s.events.push(r)});
@@ -248,9 +321,14 @@ function renderDetail(det,c,n,rec){
   <div><div class="label" style="margin-bottom:6px">날짜별 공부량</div><div class="days">${dayStrip(rec)}</div><p class="hint" style="margin:4px 0 0">색이 진할수록 오래 공부한 날이에요 (15분 · 45분 기준).</p></div>
   <div><div class="label" style="margin-bottom:6px">시험별 기록</div>${rec.exams.length?`<div class="tbl"><table><thead><tr><th>시험</th><th>처음 시작</th><th>결과</th><th>채점</th><th>처음 틀린 수</th><th>푼 시간</th></tr></thead><tbody>${rec.exams.map(e=>`<tr><td>${esc(e.title)}</td><td>${md(e.first)} ${hm(e.first)}</td><td>${e.done?`<span class="chip ok">${md(e.done)} ${hm(e.done)} 완료</span>`:'<span class="chip warn">진행 중</span>'}</td><td>${e.attempts||0}회</td><td>${e.firstWrong==null?'-':e.firstWrong+'개 / '+(e.total||'?')}</td><td>${dur(e.runSec||e.time)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">이 기간에 푼 시험이 없어요.</p>'}</div>
   ${tk.length?`<div><div class="label" style="margin-bottom:6px">자주 한 실수 (AI 분석 기준)</div><div class="tally">${tk.map(([k,v])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(v/tk[0][1]*100)}%"></i></span><b>${v}번</b></div>`).join('')}</div></div>`:''}
+  <div><div class="label" style="margin-bottom:6px">오답노트</div><div class="tlist" id="notelist"></div></div>
   <div><div class="label" style="margin-bottom:6px">공부한 순서대로</div><div class="timeline"></div></div>
   <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름" value="${esc(ls.get('dabogi.t.acad','페르마 수학학원'))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div>
   <div class="opts" id="opts"><span class="lbl">요약문에 넣을 내용 · 체크한 것만 들어가요</span>${OPTS.map(o=>`<label class="opt"><input type="checkbox" data-k="${o[0]}" ${popt[o[0]]?'checked':''}><span>${o[1]}</span></label>`).join('')}</div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
+  const nl=det.querySelector('#notelist'),nts=notesOf(c,n);
+  if(!nts.length)nl.innerHTML='<p class="hint" style="margin:0">아직 만든 오답노트가 없어요.</p>';
+  nts.forEach(nt=>{const it=h(`<div class="titem"><div><strong>${md(nt.at)} ${hm(nt.at)}</strong> <span class="hint">${esc(nt.title)} · ${nt.keys.length}문제</span></div><button class="btn small">PDF 다운로드</button></div>`);
+    it.querySelector('button').onclick=e=>makeNotePdf(c,n,nt,e.currentTarget);nl.appendChild(it)});
   const tl=det.querySelector('.timeline');const byDay={};
   rec.sessions.forEach(s=>{(byDay[ymd(s.start)]=byDay[ymd(s.start)]||[]).push(s)});
   const dk=Object.keys(byDay).sort().reverse();

@@ -164,6 +164,28 @@ body.noscroll{overflow:hidden}
 .rsteps{display:flex;flex-wrap:wrap;gap:4px}
 .rsteps span{display:inline-flex;flex-direction:column;align-items:center;min-width:52px;padding:4px 6px;border-radius:7px;background:var(--sheet);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;color:var(--ink)}
 .rsteps b{font-family:var(--f-body);font-size:11px;font-weight:500;color:var(--muted)}
+.maintabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;border-radius:14px;background:var(--sheet);border:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:9}
+.maintabs button{font:inherit;font-weight:700;font-size:16px;padding:12px 8px;border:0;border-radius:10px;background:none;color:var(--muted);cursor:pointer}
+.maintabs button[aria-selected="true"]{background:var(--band);color:var(--band-ink)}
+.sets{display:flex;flex-direction:column;gap:8px}
+.nset{border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.nset summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;cursor:pointer;font-weight:700;list-style:none}
+.nset summary::-webkit-details-marker{display:none}
+.nset summary::before{content:"▸";color:var(--muted)}.nset[open] summary::before{content:"▾"}
+.nset summary .hint{font-weight:400}
+.ncnt{margin-left:auto;min-width:26px;text-align:center;padding:1px 8px;border-radius:99px;background:var(--red);color:var(--sheet);font-size:13px}
+.ngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;padding:0 12px 12px}
+.nb{height:46px;border-radius:9px;border:1.5px solid var(--line);background:var(--sheet);color:var(--ink);font:inherit;font-family:var(--f-mono);font-size:15px;cursor:pointer;touch-action:manipulation}
+.nb[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--sheet);font-weight:700}
+.nbar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:var(--band);color:var(--band-ink);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.nbar #ncount{flex:1}.nbar b{color:var(--hi);font-size:18px}
+.nbar #nmake{background:var(--hi);border-color:var(--hi);color:#13283b}.nbar .btn.ghost{color:var(--band-ink);border-color:color-mix(in srgb,var(--band-ink) 40%,transparent)}
+.nsec{margin-top:6px}
+.ncard img{width:100%;height:auto;background:#fff;border-radius:6px}
+.nwrite{min-height:120px;border:1px dashed var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted)}
+.nans{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 16px}
+.nans>div{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+.nans b{font-family:var(--f-mono);font-weight:500;flex:none}
 .back{align-self:flex-start}
 @media (prefers-reduced-motion:no-preference){.verdict,.cert{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.98)}to{transform:none}}}
 </style>
@@ -228,15 +250,88 @@ const fmtTime=t=>new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeri
 
 function render(){
   app.innerHTML='';
-  const head=h(`<header class="top"><div class="note" aria-hidden="true">x<sup>n</sup>+y<sup>n</sup>=z<sup>n</sup></div><div><span class="acad">페르마 수학학원</span><h1>블라인드 <em>테스트</em></h1><p class="sub">${view.mode==='teacher'?'시험을 올리면 학생들이 이 링크에서 직접 채점해요.':'몇 번이 틀렸는지는 가려져 있어요. 처음부터 다시 보면서 스스로 찾아요.'}</p></div></header>`);
+  const head=h(`<header class="top"><div class="note" aria-hidden="true">x<sup>n</sup>+y<sup>n</sup>=z<sup>n</sup></div><div><span class="acad">페르마 수학학원</span>${STATE.hub?'<h1>시험 <em>대비</em></h1>':'<h1>블라인드 <em>테스트</em></h1>'}<p class="sub">${view.mode==='teacher'?'시험을 올리면 학생들이 이 링크에서 직접 채점해요.':STATE.hub?(TAB==='notes'?'교재에서 틀린 문제 번호만 누르면 그 문제들로 오답노트를 만들어 줘요.':'몇 번이 틀렸는지는 가려져 있어요. 처음부터 다시 보면서 스스로 찾아요.'):'몇 번이 틀렸는지는 가려져 있어요. 처음부터 다시 보면서 스스로 찾아요.'}</p></div></header>`);
   if(canTeach){const tb=h(`<div class="tabs" role="group"><button data-m="student" aria-pressed="${view.mode==='student'}">학생 화면</button><button data-m="teacher" aria-pressed="${view.mode==='teacher'}">선생님</button></div>`);
     tb.onclick=e=>{const m=e.target.dataset.m;if(m){view={mode:m,exam:null};render()}};head.appendChild(tb)}
   app.appendChild(head);
   if(view.mode==='teacher') return renderTeacher();
   if(!view.exam&&!autoOpened&&STATE.studentOnly&&!STATE.hub&&STATE.exams.length===1&&prog._me){autoOpened=true;view.exam=STATE.exams[0].id}
   if(view.exam) return renderExam(STATE.exams.find(x=>x.id===view.exam));
+  if(STATE.hub){const tb=h(`<nav class="maintabs" role="tablist"><button role="tab" data-t="blind" aria-selected="${TAB==='blind'}">블라인드 테스트</button><button role="tab" data-t="notes" aria-selected="${TAB==='notes'}">오답노트</button></nav>`);
+    tb.onclick=e=>{const t=e.target.closest('button');if(t&&t.dataset.t!==TAB)setTab(t.dataset.t)};app.appendChild(tb);
+    if(TAB==='notes'){if(PICK&&!(noteView&&noteView.note))renderWho();return renderNotes()}}
   renderHome();
 }
+
+/* ---------- 오답노트 (시험 대비 첫 화면의 두 번째 탭) ---------- */
+let TAB=(()=>{const h=location.hash.replace('#','');if(h==='notes'||h==='blind')return h;try{return localStorage.getItem('dabogi.tab')||'blind'}catch(e){return 'blind'}})();
+let BOOKS=null,booksErr=false,noteView=null;
+function setTab(t){TAB=t;try{localStorage.setItem('dabogi.tab',t)}catch(e){}noteView=null;render();scrollTo(0,0)}
+async function loadBooks(){if(BOOKS||booksErr)return;try{BOOKS=(await(await fetch('notes/books.json?v='+(STATE.v||''))).json()).books}catch(e){booksErr=true}render()}
+const wrongSet=bid=>{prog._wrong=prog._wrong||{};return new Set(prog._wrong[bid]||[])};
+const saveWrong=(bid,set)=>{prog._wrong=prog._wrong||{};prog._wrong[bid]=[...set];saveProg()};
+const encSel=keys=>{const g={};keys.forEach(k=>{const[s,n]=k.split(':');(g[s]=g[s]||[]).push(n)});return Object.entries(g).map(([s,ns])=>s+':'+ns.join('.')).join('|')};
+function noteItems(book,keys){const out=[];book.sets.forEach(s=>s.items.forEach(([no,page,w,hh])=>{if(keys.has(s.key+':'+no))out.push({set:s,no,page,w,h:hh,img:`notes/${book.id}/${s.key}/${no}.jpg`,ans:(book.answers||{})[s.key+':'+no]||''})}));return out}
+
+function renderNotes(){
+  if(!prog._me){app.appendChild(h(`<div class="panel"><p class="hint" style="margin:0">반과 이름을 고르면 내 학년 교재의 오답노트를 만들 수 있어요.</p></div>`));return}
+  if(!BOOKS){app.appendChild(h(`<div class="panel"><p class="hint" style="margin:0">${booksErr?'교재 정보를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.':'교재를 불러오는 중…'}</p></div>`));loadBooks();return}
+  const g=myGrade(),books=BOOKS.filter(b=>!b.grade||!g||b.grade===g);
+  if(!books.length){app.appendChild(h(`<div class="panel"><p class="hint" style="margin:0">지금은 ${GRADE_LABEL(g)} 교재가 없어요.</p></div>`));return}
+  if(noteView&&noteView.note){const b=books.find(x=>x.id===noteView.book);if(b)return renderNoteSheet(b);}
+  if(books.length>1&&!noteView){const l=h(`<div class="exam-list"></div>`);books.forEach(b=>{const n=wrongSet(b.id).size;const c=h(`<button class="exam-card"><div class="row">${n?`<span class="chip">틀린 문제 ${n}개 표시함</span>`:''}</div><h3>${esc(b.title)}</h3><div class="meta">${b.sets.reduce((a,s)=>a+s.items.length,0)}문항</div></button>`);c.onclick=()=>{noteView={book:b.id};render()};l.appendChild(c)});app.appendChild(l);return}
+  renderPicker(noteView?books.find(b=>b.id===noteView.book)||books[0]:books[0]);
+}
+
+function renderPicker(book){
+  noteView=noteView||{book:book.id};noteView.book=book.id;
+  const sel=wrongSet(book.id);
+  const p=h(`<section class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(book.title)}</h2><span class="hint">${esc(myName())}</span></div>
+    <p class="hint" style="margin:0">틀린 문제 번호만 눌러서 빨갛게 표시하세요. 표시한 내용은 저절로 저장돼서, 나갔다가 다시 들어와도 그대로 있어요.</p><div class="sets"></div></section>`);
+  const box=p.querySelector('.sets');
+  const openKey='dabogi.open.'+book.id;let open={};try{open=JSON.parse(localStorage.getItem(openKey)||'{}')}catch(e){}
+  book.sets.forEach(s=>{const cnt=s.items.filter(([no])=>sel.has(s.key+':'+no)).length;
+    const d=h(`<details class="nset" ${open[s.key]||cnt?'open':''}><summary><span>${esc(s.title)}</span><span class="hint">${s.items[0][0]}~${s.items[s.items.length-1][0]}번 · ${s.pages[0]}~${s.pages[1]}쪽</span><b class="ncnt" ${cnt?'':'hidden'}>${cnt}</b></summary><div class="ngrid"></div></details>`);
+    d.addEventListener('toggle',()=>{open[s.key]=d.open;try{localStorage.setItem(openKey,JSON.stringify(open))}catch(e){}});
+    const gr=d.querySelector('.ngrid');
+    s.items.forEach(([no,page])=>{const k=s.key+':'+no;const b=h(`<button type="button" class="nb" aria-pressed="${sel.has(k)}" title="${page}쪽">${no}</button>`);
+      b.onclick=()=>{sel.has(k)?sel.delete(k):sel.add(k);b.setAttribute('aria-pressed',sel.has(k));saveWrong(book.id,sel);
+        const c=s.items.filter(([n])=>sel.has(s.key+':'+n)).length,cb=d.querySelector('.ncnt');cb.textContent=c;cb.hidden=!c;upd()};gr.appendChild(b)});
+    box.appendChild(d)});
+  app.appendChild(p);
+  const hist=(prog._notes||[]).filter(n=>n.book===book.id).slice(-5).reverse();
+  if(hist.length){const hp=h(`<section class="panel"><span class="label">내가 만든 오답노트</span><div class="tlist"></div></section>`);
+    hist.forEach(n=>{const it=h(`<div class="titem"><div><strong>${fmtTime(n.t)}</strong><div class="hint">${n.keys.length}문제</div></div><button class="btn ghost small">다시 보기</button></div>`);
+      it.querySelector('button').onclick=()=>{noteView={book:book.id,note:n};render();scrollTo(0,0)};hp.querySelector('.tlist').appendChild(it)});app.appendChild(hp)}
+  const bar=h(`<div class="nbar"><span id="ncount"></span><button class="btn ghost small" id="nclear">모두 지우기</button><button class="btn" id="nmake">오답노트 만들기</button></div>`);
+  app.appendChild(bar);
+  const upd=()=>{const n=sel.size;bar.querySelector('#ncount').innerHTML=`틀린 문제 <b>${n}</b>개`;bar.querySelector('#nmake').disabled=!n;bar.querySelector('#nclear').hidden=!n};upd();
+  let armed=false;const cl=bar.querySelector('#nclear');
+  cl.onclick=()=>{if(!armed){armed=true;cl.textContent='한 번 더 누르면 지워요';setTimeout(()=>{armed=false;cl.textContent='모두 지우기'},3000);return}sel.clear();saveWrong(book.id,sel);render()};
+  bar.querySelector('#nmake').onclick=()=>{const keys=[...sel];const note={id:Date.now().toString(36),t:Date.now(),book:book.id,keys};
+    prog._notes=prog._notes||[];prog._notes.push(note);prog._notes=prog._notes.slice(-30);saveProg();
+    sendNote(book,note);noteView={book:book.id,note};render();scrollTo(0,0)};
+}
+
+function sendNote(book,note){if(!EP||!prog._me)return;
+  const ev={ev:'note',cls:prog._me.cls,name:prog._me.name,examId:book.id,examTitle:book.title,total:note.keys.length,wrongCount:note.keys.length,at:note.t,session:'n'+note.id,device,activeSec:0,extra:JSON.stringify({b:book.id,s:encSel(note.keys)})};
+  queue.push(ev);saveQ();flush()}
+
+function renderNoteSheet(book){
+  const note=noteView.note,items=noteItems(book,new Set(note.keys));
+  const top=h(`<section class="panel"><div class="row" style="justify-content:space-between"><div><h2>오답노트</h2><div class="hint">${esc(book.title)} · ${esc(myName())} · ${fmtTime(note.t)} · ${items.length}문제</div></div><button class="btn ghost small" id="nback">← 번호 다시 고르기</button></div>
+    <p class="hint" style="margin:0">${EP?'선생님이 이 오답노트를 PDF로 받을 수 있어요. ':''}문제를 다시 풀어 보고, 맨 아래 빠른 정답으로 확인하세요.</p></section>`);
+  top.querySelector('#nback').onclick=()=>{noteView={book:book.id};render();scrollTo(0,0)};
+  app.appendChild(top);
+  let cur='';
+  items.forEach((it,i)=>{if(it.set.key!==cur){cur=it.set.key;app.appendChild(h(`<div class="label nsec">${esc(it.set.title)}</div>`))}
+    const c=h(`<section class="panel ncard"><div class="row" style="justify-content:space-between"><strong>${i+1}. ${it.no}번</strong><span class="hint">${it.page}쪽</span></div><img loading="lazy" src="${it.img}" alt="${it.no}번 문제" width="${it.w}" height="${it.h}"><div class="nwrite">풀이</div></section>`);
+    app.appendChild(c)});
+  const ans=h(`<section class="panel"><div class="row" style="justify-content:space-between"><h2>빠른 정답</h2><button class="btn" id="nshow">정답 보기</button></div><div class="nans" hidden>${items.map((it,i)=>`<div><b>${i+1}. ${it.no}</b><span>${it.ans?ansHtml(it.ans):'<span class="hint">답지에 없음</span>'}</span></div>`).join('')}</div></section>`);
+  ans.querySelector('#nshow').onclick=e=>{const a=ans.querySelector('.nans');a.hidden=!a.hidden;e.target.textContent=a.hidden?'정답 보기':'정답 숨기기'};
+  app.appendChild(ans);
+}
+const ansHtml=a=>mathView(a.replace(/\{([^}]+)\}/g,'$1')).replace(/<span class="frac">/g,'<span class="frac">');
 
 function renderHome(){
   if(PICK)renderWho();else{

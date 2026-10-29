@@ -21,3 +21,9 @@
 - 학생에게는 사이트 첫 주소(https://fermat-math.github.io/blindtest/) 하나만 보낸다. 반·이름을 고르면 그 학년 시험만 보인다.
 - 학년은 반 이름 앞 숫자(7=중1, 8=중2, 9=중3). 시험 학년은 `tools/pages.json`의 `grade`(또는 선생님 화면에서 고른 학년)로 정한다.
 - 다른 학년 시험 링크를 직접 열면 첫 주소로 돌려보낸다. build_all.sh가 index.html도 다시 만든다.
+
+## 오답노트 (첫 화면 "오답노트" 탭)
+- 교재 문항 이미지: `notes/<교재id>/<세트키>/<번호>.jpg`, 목록·빠른 정답: `notes/books.json` (grade로 학년별 표시).
+- 문항 자르기: 교재 PDF를 qpdf로 고친 뒤(한글 CID 글꼴 Ordering→Identity) 216dpi로 렌더링하고 `tools/crop.py`로 자른다. `tools/sheet.py`로 한눈에 보는 확인용 이미지를 만들어 한 장씩 확인한다.
+- 빠른 정답 원본: `tools/answers_b22.txt` (세트키 번호<TAB>정답).
+- 학생이 "오답노트 만들기"를 누르면 기록 시트에 ev=note 줄이 남고(extra에 문항 목록), 선생님 기록 페이지의 학생 화면에서 PDF로 받는다(외부 도구 없이 브라우저에서 JPEG 페이지로 PDF 작성).
