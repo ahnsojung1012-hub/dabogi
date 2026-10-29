@@ -63,6 +63,18 @@ function doGet(e) {
       var who = findStudent_(p.cls, p.name);
       return json_(who ? { ok: true, cls: who.cls, name: who.name } : { ok: false, error: roster_().length ? 'not_in_roster' : 'empty_roster' });
     }
+    if (p.action === 'mine') {   // 학생 한 명이 통과한 시험 목록 (다른 기기에서도 '통과' 도장이 보이게)
+      var me = findStudent_(p.cls, p.name);
+      if (!me) return json_({ ok: false, error: 'not_in_roster' });
+      var lg = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_LOG);
+      var all = lg && lg.getLastRow() > 1 ? lg.getRange(2, 1, lg.getLastRow() - 1, LOG_HEADER.length).getValues() : [];
+      var passed = {};
+      all.forEach(function (r) {
+        if (r[1] === 'done' && String(r[2]) === me.cls && String(r[3]) === me.name)
+          passed[r[4]] = { at: r[10] ? +r[10] : +r[0], attempt: r[6], extra: r[14] };
+      });
+      return json_({ ok: true, passed: passed });
+    }
     if (p.action === 'log') {
       var batch = JSON.parse(p.d || '[]');
       if (!Array.isArray(batch)) batch = [batch];
