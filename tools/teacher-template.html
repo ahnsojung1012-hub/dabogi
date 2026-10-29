@@ -205,22 +205,23 @@ async function makeNotePdf(c,n,note,btn){
     const flushLast=()=>PAGES.push(canvasJpeg(cv));
     newPage();
     const d=new Date(note.at);
-    x.fillStyle='#13283b';x.fillRect(M,y,CW,150);x.fillStyle='#f4c84a';x.font=`bold 26px ${FONT}`;x.fillText('페르마 수학학원',M+30,y+48);
-    x.fillStyle='#ffffff';x.font=`bold 50px ${FONT}`;x.fillText(`${n} 오답노트`,M+30,y+112);
-    x.font=`24px ${FONT}`;x.textAlign='right';x.fillText(`${c} · ${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,M+CW-30,y+60);x.fillText(`${book.title} · ${items.length}문제`,M+CW-30,y+108);x.textAlign='left';
-    y+=190;
-    let cur='';
+    x.fillStyle='#13283b';x.fillRect(M,y,CW,96);x.fillStyle='#f4c84a';x.font=`bold 22px ${FONT}`;x.fillText('페르마 수학학원',M+24,y+36);
+    x.fillStyle='#ffffff';x.font=`bold 38px ${FONT}`;x.fillText(`${n} 오답노트`,M+24,y+80);
+    x.font=`22px ${FONT}`;x.textAlign='right';x.fillText(`${c} · ${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,M+CW-24,y+40);x.fillText(`${book.title} · ${items.length}문제`,M+CW-24,y+78);x.textAlign='left';
+    y+=120;
+    const GAP=44,COLW=(CW-GAP)/2,SOLVE=150,BOTTOM=PH-80;
+    let col=0,top=y;const colX=()=>M+col*(COLW+GAP);
+    const divider=()=>{x.fillStyle='#d3dbe4';x.fillRect(M+COLW+GAP/2,top,1.5,BOTTOM-top)};
     for(let i=0;i<items.length;i++){const it=items[i];btn.textContent=`만드는 중… ${i+1}/${items.length}`;
       const im=await loadImg(it.src);
-      const iw=Math.min(im.width*0.66,CW*0.62),ih=im.height*iw/im.width;
-      const head=(it.s.key!==cur?58:0)+44,blockH=head+Math.max(ih,220)+30;
-      if(y+blockH>PH-80){newPage()}
-      if(it.s.key!==cur){cur=it.s.key;x.fillStyle='#1d5b78';x.font=`bold 26px ${FONT}`;x.fillText(it.s.title,M,y+30);x.fillStyle='#d3dbe4';x.fillRect(M,y+44,CW,2);y+=58}
-      x.fillStyle='#c23b2c';x.font=`bold 28px ${FONT}`;x.fillText(`${i+1}.`,M,y+30);x.fillStyle='#566373';x.font=`22px ${FONT}`;x.fillText(`${it.no}번 · ${it.page}쪽`,M+50,y+30);y+=44;
-      x.drawImage(im,M,y,iw,ih);
-      const bx=M+iw+24,bw=CW-iw-24,bh=Math.max(ih,220);
-      x.strokeStyle='#c9d2dc';x.lineWidth=2;x.setLineDash([8,8]);x.strokeRect(bx,y,bw,bh);x.setLineDash([]);x.fillStyle='#93a2b2';x.font=`20px ${FONT}`;x.fillText('풀이',bx+12,y+30);
-      y+=bh+30}
+      const sc=Math.min(COLW/im.width,0.74),iw=im.width*sc,ih=im.height*sc,blockH=40+ih+SOLVE;
+      if(y+blockH>BOTTOM){if(col===0){col=1;y=top}else{divider();newPage();col=0;top=y}}
+      const cx=colX();
+      x.fillStyle='#c23b2c';x.font=`bold 26px ${FONT}`;x.fillText(`${i+1}.`,cx,y+26);
+      x.fillStyle='#566373';x.font=`19px ${FONT}`;let lab=`${it.no}번 · ${it.page}쪽 · ${it.s.title}`;while(x.measureText(lab).width>COLW-50&&lab.length>6)lab=lab.slice(0,-2)+'…';x.fillText(lab,cx+46,y+25);
+      y+=40;x.drawImage(im,cx,y,iw,ih);y+=ih+SOLVE;
+      x.fillStyle='#eef1f4';x.fillRect(cx,y-14,COLW,1)}
+    divider();
     newPage();
     x.fillStyle='#13283b';x.font=`bold 40px ${FONT}`;x.fillText('빠른 정답',M,y+40);y+=80;
     const cols=2,colW=CW/cols,LH=36;
