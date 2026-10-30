@@ -1,7 +1,7 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>2-2 기말대비3 · 블라인드 테스트</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" id="fonts" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" id="fonts" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@300;400;500;700&family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style id="page-style">
 /* Layout: a navy masthead (Fermat's margin note behind it), then one notebook column — exam list, or one exam with a sticky answer sheet. */
 :root{
@@ -187,6 +187,58 @@ body.noscroll{overflow:hidden}
 .mfa{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));border-top:2px solid #333;border-bottom:2px solid #333;margin:0 16px 18px}
 .mfa-c{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:baseline;padding:9px 8px;border-bottom:1px solid #d0d0d0;border-right:1px solid #d0d0d0}
 .mfa-c b{color:#00abff;font-weight:800}.mfa-c small{grid-column:1/-1;order:3;color:#9a9a9a;font-size:10px}.mfa-c span{min-width:0;overflow-wrap:anywhere}
+
+/* ===== ONE REPORT 보고서 ===== */
+.or h2,.or h3,.or-big,.or-score b,.or-sum b{font-family:inherit}
+.cert.or{border:0;padding:0;gap:0;background:transparent;color:#222;font-family:"Noto Sans KR","IBM Plex Sans KR",system-ui,sans-serif}
+.or .or-cover,.or .or-sec{background:#fff;color:#222;border:1px solid #e6e6e6;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:26px 22px;position:relative}
+.or .or-sec{margin-top:12px}
+.or .or-cover{min-height:520px;display:flex;flex-direction:column}
+.or .or-cover .stamp{top:auto;bottom:70px;right:22px}
+.or-date{font-size:22px;font-weight:400;letter-spacing:.5px;padding-bottom:10px;border-bottom:3px solid #111;max-width:420px}
+.or-tag{font-size:10px;margin-top:8px;color:#333}
+.or-big{margin:56px 0 30px;font-size:clamp(56px,17vw,110px);line-height:.92;font-weight:300;letter-spacing:-1px;background:linear-gradient(180deg,#1666a8 0%,#1ea7ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.or-who{display:flex;flex-direction:column;gap:4px}.or-who b{font-size:22px;font-weight:400}.or-who span{font-size:13px;color:#444}
+.or-msg{margin:18px 0 0;font-size:14px;color:#333;padding-right:96px}.or-msg b{color:#1ea7ff}
+.or-logo{width:120px;margin-top:auto;align-self:flex-start;padding-top:28px}
+.or-run{display:flex;align-items:center;gap:14px;font-size:13px;color:#222}.or-run::after{content:"";flex:1;height:1px;background:#333}
+.or-h{margin:14px 0 18px;font-size:30px;font-weight:300;color:#1ea7ff;letter-spacing:-.5px}.or-h small{font-size:17px;font-weight:500}
+.or-t{margin:26px 0 12px;font-size:16px;font-weight:700;color:#111}.or-t.b{color:#1ea7ff}.or-t.o{color:#ff8a00}
+.or-score{display:flex;align-items:center;justify-content:space-around;text-align:center;padding:4px 0 18px}
+.or-score>div{display:flex;flex-direction:column;align-items:center}.or-score span{font-size:12px;color:#1ea7ff}.or-score span.o{color:#ff8a00}
+.or-score b{font-size:60px;font-weight:400;line-height:1.05;color:#1ea7ff}.or-score b.o{color:#ff8a00}.or-score em{font-style:normal;font-size:12px;color:#888}.or-score>i{width:1px;height:40px;background:#ccc}
+.or-meta{border-top:1px solid #bbb;border-bottom:1px solid #bbb}.or-meta-h{background:#eee;text-align:center;font-size:12px;font-weight:700;padding:6px}
+.or-meta dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));column-gap:24px}
+.or-meta dl>div{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-top:1px solid #eee;font-size:12px}.or-meta dt{color:#888;white-space:nowrap}.or-meta dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.or-chart{width:100%;height:auto;display:block}
+.or-rounds{display:flex;flex-direction:column;border-top:1px solid #ddd}
+.or-round{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 2px;border-bottom:1px solid #eee;font-size:12px}.or-round>b{color:#1ea7ff;min-width:34px}
+.or-rt{color:#666;font-variant-numeric:tabular-nums}.or-rq{display:flex;flex-wrap:wrap;gap:4px;margin-left:auto}
+.or-x,.or-ok{font-style:normal;font-size:11px;padding:2px 6px;border-radius:2px;background:#fff3e6;color:#e57a00;font-weight:700}.or-ok{background:#e6f5ff;color:#1ea7ff}
+.or-note{font-size:11px;color:#999;margin:6px 0 0}
+.or-types{display:grid;grid-template-columns:1fr;gap:0 24px}@media (min-width:600px){.or-types{grid-template-columns:1fr 1fr}}
+.or-tl{display:flex;flex-direction:column;gap:4px}.or-ti{display:flex;gap:8px;align-items:center;background:#f6f6f6;font-size:12px;min-width:0}.or-ti>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.or-none{margin:0;font-size:12px;color:#999}
+.or-qn{display:inline-block;flex:none;background:#1ea7ff;color:#fff;font-size:11px;font-weight:700;padding:2px 6px;min-width:34px;text-align:center}.or-qn.o{background:#ff8a00}
+.or-items{display:flex;flex-direction:column}
+.or-item{display:grid;grid-template-columns:44px minmax(0,1fr) 22px minmax(50px,30%) 62px;gap:8px;align-items:center;padding:6px 0;font-size:11px;border-bottom:1px solid #f2f2f2}
+.or-item .or-qn{background:none;color:#888;font-weight:500;padding:0;text-align:left}.or-item .or-qn.o{color:#ff8a00;border:1px solid #ff8a00;text-align:center;font-weight:700}
+.or-cn{color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.or-mk{width:16px;height:16px;border-radius:50%;border:2.5px solid #1ea7ff;justify-self:center}
+.or-mk.x{border:0;border-radius:0;position:relative}.or-mk.x::before,.or-mk.x::after{content:"";position:absolute;left:7px;top:-1px;width:3px;height:18px;background:#f0442c;transform:rotate(45deg)}.or-mk.x::after{transform:rotate(-45deg)}
+.or-bar{height:12px;background:#f0f0f0}.or-bar i{display:block;height:100%;background:#cfd8df}
+.or-pc{color:#888;text-align:right;white-space:nowrap}
+.or-purpose{display:flex;gap:12px;font-size:12px;line-height:1.6}.or-purpose b{flex:none}
+.or-sum-h{margin:24px 0 10px;font-size:24px;font-weight:500}.or-sum-h small{font-size:12px;font-weight:400}
+.or-sum{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;gap:4px}
+.or-sum span{font-size:11px;color:#1ea7ff}.or-sum span.o{color:#ff8a00}.or-sum b{display:block;font-size:34px;font-weight:400;color:#1ea7ff}.or-sum b.o{color:#ff8a00}.or-sum em{font-style:normal;font-size:13px;margin-left:2px}
+.or .summary{margin-top:6px}
+.or .why{display:flex;flex-direction:column;gap:10px}
+.or .wcard{background:#f2f2f2;border:0;border-radius:0;padding:14px;color:#222}.or .wcard .label{color:#1ea7ff}.or .wcard .hint{color:#777}
+.or .arow{border-top:1px dashed #d6d6d6}.or .areason{color:#444}
+.or .tbar{background:#eee}.or .tbar i{background:#1ea7ff}
+.or-again{margin-top:22px}
+@media (max-width:420px){.or-item{grid-template-columns:40px minmax(0,1fr) 20px 46px 56px;gap:6px}.or-sum b{font-size:26px}.or-score b{font-size:48px}}
 .rules{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:9px;border:1px dashed var(--line);background:var(--paper);font-size:13px;color:var(--muted)}
 .rules strong{color:var(--ink);font-size:14px}
 .rsteps{display:flex;flex-wrap:wrap;gap:4px}
@@ -573,25 +625,64 @@ async function unlockAnalysis(ex,answers){
 const TYPES=['문제를 잘못 읽음','조건을 놓침','계산 실수','부호 실수','옮겨 적기 실수','개념 부족'];
 
 function renderCert(ex,pr){
+  /* ONE REPORT 양식: 표지 → RESULT 진단결과 → ASSESSMENT 학습평가 (내용은 이전 보고서와 같아요) */
   const everWrong=[...new Set(pr.attempts.flatMap(a=>a.w))].sort((a,b)=>a-b);
   const spent=pr.spent||pr.attempts[pr.attempts.length-1].s||Math.round((pr.done-pr.start)/1000);
   const hist=(prog._hist&&prog._hist[ex.id])||[];
-  const c=h(`<section class="cert">${stamp(pr.done)}<div class="big" style="color:var(--green);font-family:var(--f-display)">다 맞았어요!</div>
-  <p style="margin:0">${everWrong.length?'틀렸던 문제를 AI가 분석했어요. 읽어 보고 이 보고서를 선생님께 보여주세요.':'한 번에 다 맞았어요. 이 화면을 선생님께 보여주세요.'}${EP?' 이 기록은 선생님께 저장됐어요.':''}${pr.remote?'<br><span class="hint">다른 기기에서 통과한 기록을 불러왔어요.</span>':''}</p>
-  <dl><dt>이름</dt><dd>${esc(myName())}</dd><dt>시험</dt><dd>${esc(ex.title)}</dd><dt>처음 시작</dt><dd>${fmtTime(pr.start)}</dd><dt>다 맞힌 시각</dt><dd>${fmtTime(pr.done)}</dd><dt>실제로 푼 시간</dt><dd>${fmtDur(spent)}</dd><dt>채점 횟수</dt><dd>${pr.attempts.length}회</dd><dt>한 번이라도 틀린 문제</dt><dd>${everWrong.length}문항 / ${ex.hashes.length}문항</dd></dl>
-  <div><div class="label" style="margin-bottom:6px">회차별 기록</div><div class="rtable">${pr.attempts.map((a,i)=>`<div class="rrow"><span class="rno">${i+1}차</span><span class="rtime">${fmtTime(a.t)}${a.s!=null?` · ${fmtDur(a.s)}째`:''}</span><span class="rq">${a.w.length?a.w.map(q=>`<b class="qb">${qn(ex,q)}번</b>`).join(''):'<b class="qb ok">모두 정답</b>'}</span></div>`).join('')}</div><p class="hint" style="margin:4px 0 0">"○분째"는 처음 시작한 뒤 이 화면을 실제로 보고 있던 시간을 더한 거예요.</p></div>
-  <div class="summary" hidden></div><div class="why"></div>
-  ${hist.length?`<div><div class="label" style="margin-bottom:6px">이전에 푼 기록</div><div class="rtable">${hist.map((r,i)=>`<div class="rrow"><span class="rno">${i+1}번째</span><span class="rtime">${fmtTime(r.start)} 시작 · ${r.done?`${r.attempts.length}회 만에 완료 · ${fmtDur(r.spent)}`:'끝내지 않음'}</span></div>`).join('')}</div></div>`:''}
-  <div class="row"><button class="btn ghost small" id="retry">한 번 더 풀어 보기</button><span class="hint">지금 기록은 지워지지 않고 "이전에 푼 기록"에 남아요.</span></div></section>`);
+  const N=ex.hashes.length,att=pr.attempts,pad2=k=>String(k).padStart(2,'0');
+  const firstScore=Math.round((N-att[0].w.length)/N*100);
+  const dd=new Date(pr.done),dateTxt=`${dd.getFullYear()}/${pad2(dd.getMonth()+1)}/${pad2(dd.getDate())}`;
+  const me=prog._me||{},g=gradeOf(me.cls);
+  const fixedAt=q=>{let last=-1;att.forEach((a,i)=>{if(a.w.includes(q))last=i});return last+2};  /* 몇 차에 맞혔는지 */
+  /* 회차별 정답률 꺾은선 */
+  const pts=att.map(a=>Math.round((N-a.w.length)/N*100));
+  const lo=Math.max(0,Math.floor((Math.min(...pts)-10)/10)*10),W=innerWidth<520?340:600,H=innerWidth<520?190:230,L=34,R=22,T=24,B=32;
+  const px=i=>att.length===1?(L+(W-L-R)/2):L+i*(W-L-R)/(att.length-1),py=v=>T+(100-v)/(100-lo||1)*(H-T-B);
+  const grid=[0,1,2,3,4].map(k=>{const v=Math.round(lo+(100-lo)*k/4);return `<line x1="${L}" x2="${W-R}" y1="${py(v)}" y2="${py(v)}" stroke="#ececec"/><text x="${L-8}" y="${py(v)+4}" text-anchor="end" font-size="11" fill="#9a9a9a">${v}</text>`}).join('');
+  const chart=`<svg viewBox="0 0 ${W} ${H}" class="or-chart" role="img" aria-label="회차별 정답률">${grid}<line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="#333"/>
+    <polyline fill="none" stroke="#1ea7ff" stroke-width="2.5" points="${pts.map((v,i)=>`${px(i)},${py(v)}`).join(' ')}"/>
+    ${pts.map((v,i)=>`<circle cx="${px(i)}" cy="${py(v)}" r="4.5" fill="#1ea7ff"/><text x="${px(i)}" y="${py(v)-10}" text-anchor="middle" font-size="12" fill="#1ea7ff" font-weight="700">${v}%</text><text x="${px(i)}" y="${H-12}" text-anchor="middle" font-size="12" fill="#555">${i+1}차</text>`).join('')}</svg>`;
+  const c=h(`<section class="cert or">
+  <div class="or-cover">${stamp(pr.done)}
+    <div class="or-date">${dateTxt}</div><div class="or-tag">The secret of education lies in respecting the pupil</div>
+    <div class="or-big">ONE<br>REPORT</div>
+    <div class="or-who"><b>${esc(myName())}</b><span>${esc(me.cls||'')}${g?` · ${GRADE_LABEL(g)}`:''}</span><span>${esc(ex.title)}</span></div>
+    <p class="or-msg"><b>다 맞았어요!</b> ${everWrong.length?'틀렸던 문제를 AI가 분석했어요. 읽어 보고 이 보고서를 선생님께 보여주세요.':'한 번에 다 맞았어요. 이 화면을 선생님께 보여주세요.'}${EP?' 이 기록은 선생님께 저장됐어요.':''}${pr.remote?'<br><span class="hint">다른 기기에서 통과한 기록을 불러왔어요.</span>':''}</p>
+    <img class="or-logo" src="https://fermat-math.github.io/blindtest/assets/fermat-logo.png" alt="페르마 수학학원" onerror="this.remove()">
+  </div>
+  <div class="or-sec"><div class="or-run">one report</div><h2 class="or-h">RESULT <small>진단결과</small></h2>
+    <div class="or-score"><div><span class="o">채점 횟수</span><b class="o">${att.length}</b><em>회</em></div><i></i><div><span>첫 채점 점수</span><b>${firstScore}</b><em>점</em></div></div>
+    <div class="or-meta"><div class="or-meta-h">블라인드 테스트</div><dl><div><dt>이름</dt><dd>${esc(myName())}</dd></div><div><dt>처음 시작</dt><dd>${fmtTime(pr.start)}</dd></div><div><dt>다 맞힌 시각</dt><dd>${fmtTime(pr.done)}</dd></div><div><dt>실제로 푼 시간</dt><dd>${fmtDur(spent)}</dd></div><div><dt>채점 횟수</dt><dd>${att.length}회</dd></div><div><dt>한 번이라도 틀린 문제</dt><dd>${everWrong.length}문항 / ${N}문항</dd></div></dl></div>
+    <h3 class="or-t">회차별 정답률</h3>${chart}
+    <div class="or-rounds">${att.map((a,i)=>`<div class="or-round"><b>${i+1}차</b><span class="or-rt">${fmtTime(a.t)}${a.s!=null?` · ${fmtDur(a.s)}째`:''}</span><span class="or-rq">${a.w.length?a.w.map(q=>`<i class="or-x">${qn(ex,q)}번</i>`).join(''):'<i class="or-ok">모두 정답</i>'}</span></div>`).join('')}</div>
+    <p class="or-note">"○분째"는 처음 시작한 뒤 이 화면을 실제로 보고 있던 시간을 더한 거예요.</p>
+    <div class="or-types"><div><h3 class="or-t b">대표 우수 유형</h3><div class="or-tl" id="orgood"></div></div><div><h3 class="or-t o">대표 취약 유형</h3><div class="or-tl" id="orweak"></div></div></div>
+    <h3 class="or-t">문항별 진단</h3><div class="or-items">${ex.hashes.map((_,q)=>{const w=everWrong.includes(q),f=w?fixedAt(q):1;return `<div class="or-item"><span class="or-qn${w?' o':''}">${qn(ex,q)}번</span><span class="or-cn" data-q="${q}"></span><span class="or-mk ${w?'x':'ok'}" aria-label="${w?'틀린 적 있음':'한 번에 정답'}"></span><span class="or-bar"><i style="width:${Math.round(100/f)}%"></i></span><span class="or-pc">${w?`${f}차에 고침`:'1차 정답'}</span></div>`}).join('')}</div>
+  </div>
+  <div class="or-sec"><div class="or-run">one report</div><h2 class="or-h">ASSESSMENT <small>학습평가</small></h2>
+    <div class="or-purpose"><b>평가목적</b><span>틀린 개수를 알려 주지 않는 블라인드 테스트로 처음부터 다시 검토하는 습관을 기르고, 틀렸던 문제의 원인을 분석해 다음 시험의 검토 방향을 세워요.</span></div>
+    <div class="or-sum-h">summary <small>평가결과요약</small></div>
+    <div class="or-sum"><div><span>첫 채점 정답률</span><b>${firstScore}<em>%</em></b></div><div><span>최종 정답률</span><b>100<em>%</em></b></div><div><span>채점 횟수</span><b>${att.length}<em>회</em></b></div><div><span class="o">틀렸던 문제</span><b class="o">${everWrong.length}<em>문항</em></b></div></div>
+    <div class="summary" hidden></div><div class="why"></div>
+    ${hist.length?`<h3 class="or-t">이전에 푼 기록</h3><div class="or-rounds">${hist.map((r,i)=>`<div class="or-round"><b>${i+1}번째</b><span class="or-rt">${fmtTime(r.start)} 시작 · ${r.done?`${r.attempts.length}회 만에 완료 · ${fmtDur(r.spent)}`:'끝내지 않음'}</span></div>`).join('')}</div>`:''}
+    <div class="row or-again"><button class="btn ghost small" id="retry">한 번 더 풀어 보기</button><span class="hint">지금 기록은 지워지지 않고 "이전에 푼 기록"에 남아요.</span></div>
+  </div></section>`);
   c.querySelector('#retry').onclick=()=>{prog._hist=prog._hist||{};(prog._hist[ex.id]=prog._hist[ex.id]||[]).push({start:pr.start,done:pr.done,spent,attempts:pr.attempts.map(a=>({t:a.t,s:a.s,w:a.w}))});
     delete prog[ex.id];saveProg();render();scrollTo(0,0)};
   app.appendChild(c);
-  if(!everWrong.length)return;
   const why=c.querySelector('.why');
-  why.innerHTML='<p class="hint">분석을 여는 중…</p>';
+  if(everWrong.length)why.innerHTML='<p class="hint">분석을 여는 중…</p>';
+  const fillTypes=qmap=>{
+    const tag=(q,cls)=>`<div class="or-ti"><span class="or-qn${cls}">${qn(ex,q)}번</span><span>${esc((qmap[q]&&qmap[q].concept)||'')}</span></div>`;
+    const good=ex.hashes.map((_,q)=>q).filter(q=>!everWrong.includes(q)&&qmap[q]).slice(-3);
+    c.querySelector('#orgood').innerHTML=good.length?good.map(q=>tag(q,'')).join(''):'<p class="or-none">-</p>';
+    c.querySelector('#orweak').innerHTML=everWrong.length?everWrong.slice(0,3).map(q=>tag(q,' o')).join(''):'<p class="or-none">틀린 문제가 없어요</p>';
+    c.querySelectorAll('.or-cn').forEach(el=>{const A=qmap[+el.dataset.q];el.textContent=A&&A.concept?A.concept:''})};
   unlockAnalysis(ex,pr.answers).then(an=>{
-    why.innerHTML='';
     const qmap={};(an&&an.questions||[]).forEach(q=>qmap[(q.no|0)-(ex.start||1)]=q);
+    fillTypes(qmap);
+    if(!everWrong.length)return;
+    why.innerHTML='<h3 class="or-t">틀렸던 문제 분석</h3>';
     const tally={};
     everWrong.forEach(q=>{
       const mine=pr.attempts.map((a,i)=>a.w.includes(q)?{r:i+1,v:(a.a&&a.a[q])||''}:null).filter(Boolean);
@@ -599,14 +690,14 @@ function renderCert(ex,pr){
       const rows=mine.map(m=>{const hit=A&&(A.mistakes||[]).find(x=>String(x.answer).split('|').some(v=>unitless(v)===unitless(m.v)));
         if(hit&&hit.type)tally[hit.type]=(tally[hit.type]||0)+1;
         return `<div class="arow"><span class="rno">${m.r}차</span><div style="min-width:0"><div><b class="ans-w">${esc(m.v)}</b>${hit&&hit.type?` <span class="chip warn">${esc(hit.type)}</span>`:''}</div><div class="areason">${hit?esc(hit.reason):A?'예상한 실수 목록에 없는 답이에요. 아래 풀이와 내 풀이를 한 줄씩 비교해 보세요.':''}</div></div></div>`}).join('');
-      const card=h(`<div class="wcard"><div class="row" style="justify-content:space-between"><strong>${qn(ex,q)}번${A&&A.concept?` · ${esc(A.concept)}`:''}</strong><span class="hint">고친 답 ${esc(pr.answers[q])}</span></div>
+      const card=h(`<div class="wcard"><div class="row" style="justify-content:space-between"><strong><span class="or-qn o">${qn(ex,q)}번</span> ${A&&A.concept?esc(A.concept):''}</strong><span class="hint">고친 답 ${esc(pr.answers[q])}</span></div>
         ${rows}
         ${A?`${A.solution?`<div class="ablock"><span class="label">바른 풀이</span><div>${esc(A.solution)}</div></div>`:''}${A.tip?`<div class="ablock"><span class="label">다음에 검토할 때</span><div>${esc(A.tip)}</div></div>`:''}`:'<p class="hint" style="margin:0">이 시험에는 AI 분석이 없어요. 선생님과 함께 왜 틀렸는지 확인해 보세요.</p>'}</div>`);
       why.appendChild(card)});
     const ks=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
     if(EP&&!pr.reported){pr.reported=true;saveProg();logEv('report',ex,{attempt:pr.attempts.length,wrong:everWrong.map(q=>qn(ex,q)).join(','),wrongCount:everWrong.length,extra:JSON.stringify({tally,runSec:spent})})}
     if(ks.length){const s=c.querySelector('.summary');s.hidden=false;
-      s.innerHTML=`<div class="label" style="margin-bottom:6px">나의 실수 유형</div><div class="tally">${ks.map(([k,n])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(n/ks[0][1]*100)}%"></i></span><b>${n}번</b></div>`).join('')}</div><p class="hint" style="margin:6px 0 0">가장 많은 실수는 <strong>${esc(ks[0][0])}</strong>예요. 다음 시험에서는 이 부분부터 검토하세요.</p>`}
+      s.innerHTML=`<h3 class="or-t">나의 실수 유형</h3><div class="tally">${ks.map(([k,n])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(n/ks[0][1]*100)}%"></i></span><b>${n}번</b></div>`).join('')}</div><p class="hint" style="margin:6px 0 0">가장 많은 실수는 <strong>${esc(ks[0][0])}</strong>예요. 다음 시험에서는 이 부분부터 검토하세요.</p>`}
   });
 }
 
