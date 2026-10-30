@@ -200,6 +200,7 @@ body.noscroll{overflow:hidden}
 .or-big{margin:56px 0 30px;font-size:clamp(56px,17vw,110px);line-height:.92;font-weight:300;letter-spacing:-1px;background:linear-gradient(180deg,#1666a8 0%,#1ea7ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .or-who{display:flex;flex-direction:column;gap:4px}.or-who b{font-size:22px;font-weight:400}.or-who span{font-size:13px;color:#444}
 .or-msg{margin:18px 0 0;font-size:14px;color:#333;padding-right:96px}.or-msg b{color:#1ea7ff}
+.or-share{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.or-kakao{font:inherit;font-weight:700;font-size:14px;background:#fee500;color:#191600;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}.or-kakao:active{transform:translateY(1px)}
 .or-logo{width:120px;margin-top:auto;align-self:flex-start;padding-top:28px}
 .or-run{display:flex;align-items:center;gap:14px;font-size:13px;color:#222}.or-run::after{content:"";flex:1;height:1px;background:#333}
 .or-h{margin:14px 0 18px;font-size:30px;font-weight:300;color:#1ea7ff;letter-spacing:-.5px}.or-h small{font-size:17px;font-weight:500}
@@ -624,6 +625,12 @@ async function unlockAnalysis(ex,answers){
 }
 const TYPES=['문제를 잘못 읽음','조건을 놓침','계산 실수','부호 실수','옮겨 적기 실수','개념 부족'];
 
+const KAKAO_KEY='bd7ba39377d1819561c48f3a2b684a7d',SITE='https://fermat-math.github.io/blindtest/';
+let kakaoP=null;
+function loadKakao(){if(kakaoP)return kakaoP;
+  kakaoP=new Promise((res,rej)=>{if(window.Kakao){res();return}const sc=document.createElement('script');sc.src='https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';sc.crossOrigin='anonymous';sc.onload=()=>res();sc.onerror=()=>{kakaoP=null;rej(new Error('kakao'))};document.head.appendChild(sc)})
+    .then(()=>{if(!Kakao.isInitialized())Kakao.init(KAKAO_KEY)});
+  kakaoP.catch(()=>{});return kakaoP}
 function renderCert(ex,pr){
   /* ONE REPORT 양식: 표지 → RESULT 진단결과 → ASSESSMENT 학습평가 (내용은 이전 보고서와 같아요) */
   const everWrong=[...new Set(pr.attempts.flatMap(a=>a.w))].sort((a,b)=>a-b);
@@ -648,6 +655,7 @@ function renderCert(ex,pr){
     <div class="or-big">ONE<br>REPORT</div>
     <div class="or-who"><b>${esc(myName())}</b><span>${esc(me.cls||'')}${g?` · ${GRADE_LABEL(g)}`:''}</span><span>${esc(ex.title)}</span></div>
     <p class="or-msg"><b>다 맞았어요!</b> ${everWrong.length?'틀렸던 문제를 AI가 분석했어요. 읽어 보고 이 보고서를 선생님께 보여주세요.':'한 번에 다 맞았어요. 이 화면을 선생님께 보여주세요.'}${EP?' 이 기록은 선생님께 저장됐어요.':''}${pr.remote?'<br><span class="hint">다른 기기에서 통과한 기록을 불러왔어요.</span>':''}</p>
+    <div class="or-share"><button type="button" class="or-kakao" id="kshare"><span aria-hidden="true">💬</span> 카카오톡으로 보내기</button><button type="button" class="btn ghost small" id="oshare">다른 앱으로 보내기</button></div>
     <img class="or-logo" src="https://fermat-math.github.io/blindtest/assets/fermat-logo.png" alt="페르마 수학학원" onerror="this.remove()">
   </div>
   <div class="or-sec"><div class="or-run">one report</div><h2 class="or-h">RESULT <small>진단결과</small></h2>
@@ -667,6 +675,16 @@ function renderCert(ex,pr){
     ${hist.length?`<h3 class="or-t">이전에 푼 기록</h3><div class="or-rounds">${hist.map((r,i)=>`<div class="or-round"><b>${i+1}번째</b><span class="or-rt">${fmtTime(r.start)} 시작 · ${r.done?`${r.attempts.length}회 만에 완료 · ${fmtDur(r.spent)}`:'끝내지 않음'}</span></div>`).join('')}</div>`:''}
     <div class="row or-again"><button class="btn ghost small" id="retry">한 번 더 풀어 보기</button><span class="hint">지금 기록은 지워지지 않고 "이전에 푼 기록"에 남아요.</span></div>
   </div></section>`);
+  /* 카카오톡 / 다른 앱으로 결과 보내기 */
+  const shareTxt=`[페르마 수학학원 블라인드 테스트]\n${myName()} · ${ex.title}\n첫 채점 ${firstScore}점 → ${att.length}회 만에 모두 정답\n틀렸던 문제 ${everWrong.length?everWrong.map(q=>qn(ex,q)+'번').join(', '):'없음'}\n실제로 푼 시간 ${fmtDur(spent)} · ${fmtTime(pr.done)}`;
+  loadKakao();
+  c.querySelector('#kshare').onclick=async()=>{
+    try{await loadKakao();
+      Kakao.Share.sendDefault({objectType:'feed',content:{title:`${myName()} · ${ex.title} 블라인드 테스트 통과`,description:`첫 채점 ${firstScore}점 → ${att.length}회 만에 모두 정답 · 틀렸던 문제 ${everWrong.length}개 · ${fmtDur(spent)}`,imageUrl:'https://fermat-math.github.io/blindtest/assets/report-card.png',imageWidth:800,imageHeight:420,link:{mobileWebUrl:SITE,webUrl:SITE}},buttons:[{title:'시험 대비 열기',link:{mobileWebUrl:SITE,webUrl:SITE}}]});
+    }catch(e){otherShare()}};
+  const otherShare=async()=>{try{if(navigator.share){await navigator.share({title:'블라인드 테스트 결과',text:shareTxt});return}}catch(e){if(e&&e.name==='AbortError')return}
+    try{await navigator.clipboard.writeText(shareTxt);toast('결과를 복사했어요. 카카오톡에 붙여 넣으세요.')}catch(e){toast('공유를 열지 못했어요')}};
+  c.querySelector('#oshare').onclick=otherShare;
   c.querySelector('#retry').onclick=()=>{prog._hist=prog._hist||{};(prog._hist[ex.id]=prog._hist[ex.id]||[]).push({start:pr.start,done:pr.done,spent,attempts:pr.attempts.map(a=>({t:a.t,s:a.s,w:a.w}))});
     delete prog[ex.id];saveProg();render();scrollTo(0,0)};
   app.appendChild(c);
