@@ -112,6 +112,7 @@ th,td{text-align:left;padding:7px 8px;border-top:1px solid var(--line);vertical-
 .opt span{display:inline-block;padding:5px 11px;border-radius:99px;border:1px solid var(--line);font-size:13px;background:var(--sheet);color:var(--muted)}
 .opt input:checked+span{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
 .opt input:focus-visible+span{outline:2px solid var(--blue);outline-offset:2px}
+.rbtns{display:flex;gap:4px;flex-wrap:nowrap}.kbtn{background:#fee500!important;color:#191600!important;border-color:#fee500!important}
 </style>
 </head>
 <body>
@@ -264,6 +265,123 @@ async function makeNotePdf(c,n,note,btn,mode){
   }catch(e){console.error(e);toast('PDF를 만들지 못했어요. 다시 눌러 주세요.');btn.textContent=old;btn.disabled=false}
 }
 
+
+/* ---------- 카카오톡 보내기 ---------- */
+const KAKAO_KEY='bd7ba39377d1819561c48f3a2b684a7d',SITE='https://fermat-math.github.io/blindtest/';
+let kakaoP=null;
+function loadKakao(){if(kakaoP)return kakaoP;
+  kakaoP=new Promise((res,rej)=>{if(window.Kakao){res();return}const sc=document.createElement('script');sc.src='https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';sc.crossOrigin='anonymous';sc.onload=()=>res();sc.onerror=()=>{kakaoP=null;rej(new Error('kakao'))};document.head.appendChild(sc)})
+    .then(()=>{if(!Kakao.isInitialized())Kakao.init(KAKAO_KEY)});
+  kakaoP.catch(()=>{});return kakaoP}
+function resultLine(e){const N=Number(e.total)||0,fw=e.firstWrong==null?null:e.firstWrong;const fs=N&&fw!=null?Math.round((N-fw)/N*100):null;
+  return `${fs!=null?`첫 채점 ${fs}점 → `:''}${e.attempts}회 만에 모두 정답 · 틀렸던 문제 ${e.everWrong?String(e.everWrong).split(',').filter(Boolean).length:(fw||0)}개 · ${dur(e.runSec||e.time)}`}
+async function kakaoResult(c,n,e){
+  try{await loadKakao();
+    Kakao.Share.sendDefault({objectType:'feed',content:{title:`${n} · ${e.title} 블라인드 테스트 통과`,description:resultLine(e),imageUrl:SITE+'assets/report-card.png',imageWidth:800,imageHeight:420,link:{mobileWebUrl:SITE,webUrl:SITE}},buttons:[{title:'시험 대비 열기',link:{mobileWebUrl:SITE,webUrl:SITE}}]});
+  }catch(err){shareFallback(`[페르마 수학학원 블라인드 테스트]\n${c} ${n} · ${e.title}\n${resultLine(e)}`)}}
+async function kakaoText(t){t=String(t||'').trim();if(!t){toast('요약문이 비어 있어요');return}
+  const short=t.length>200?t.slice(0,197)+'…':t;
+  try{await loadKakao();Kakao.Share.sendDefault({objectType:'text',text:short,link:{mobileWebUrl:SITE,webUrl:SITE},buttonTitle:'시험 대비 열기'});
+    if(t.length>200)toast('카카오톡 글자 수 제한(200자) 때문에 뒷부분이 잘렸어요. 긴 요약문은 복사해서 보내 주세요.');
+  }catch(err){shareFallback(t)}}
+async function shareFallback(t){try{if(navigator.share){await navigator.share({text:t});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(t);toast('카카오톡을 열지 못해 내용을 복사했어요. 카카오톡에 붙여 넣으세요.')}catch(e){toast('카카오톡을 열지 못했어요')}}
+
+/* ---------- 블라인드 테스트 보고서 PDF (ONE REPORT 양식) ---------- */
+let CONCEPTS=null;
+async function getConcepts(){if(CONCEPTS)return CONCEPTS;try{CONCEPTS=await(await fetch('exams/concepts.json?v='+Date.now())).json()}catch(e){CONCEPTS={}}return CONCEPTS}
+async function makeReportPdf(c,n,e,btn){
+  const old=btn.textContent;btn.disabled=true;btn.textContent='만드는 중…';
+  try{
+    const CC=(await getConcepts())[e.id]||{},N=Number(e.total)||CC.n||0,st=CC.start||1;
+    const dx=e.dx||{},atts=(dx.attempts&&dx.attempts.length?dx.attempts:[{t:e.done,s:e.runSec,w:[]}]).map(a=>({t:a.t,s:a.s,w:(a.w||[]).map(Number)}));
+    const ever=[...new Set(atts.flatMap(a=>a.w))].sort((a,b)=>a-b);
+    const firstScore=N?Math.round((N-atts[0].w.length)/N*100):0;
+    const spent=e.runSec||dx.runSec||e.time||0;
+    const PW=1240,PH=1754,M=90,CW=PW-2*M,BLUE='#1ea7ff',ORG='#ff8a00',INK='#222',GRAY='#888';
+    const FONT='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+    const pad2=k=>String(k).padStart(2,'0'),dd=new Date(e.done);
+    const PAGES=[];let cv,x,y;
+    const newPage=()=>{if(cv)PAGES.push(canvasJpeg(cv));cv=document.createElement('canvas');cv.width=PW;cv.height=PH;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,PW,PH);x.textAlign='left';x.textBaseline='alphabetic'};
+    const run=(en,ko)=>{x.fillStyle=INK;x.font=`26px ${FONT}`;x.fillText('one report',M,110);x.fillStyle='#333';x.fillRect(M+150,101,CW-150,2);
+      x.fillStyle=BLUE;x.font=`300 62px ${FONT}`;x.fillText(en,M,200);const w=x.measureText(en+' ').width;x.font=`500 34px ${FONT}`;x.fillText(ko,M+w,200);y=260};
+    const h3=(t,col)=>{x.fillStyle=col||'#111';x.font=`bold 32px ${FONT}`;x.fillText(t,M,y);y+=34};
+    const ellip=(t,w)=>{t=String(t||'');while(t&&x.measureText(t).width>w)t=t.slice(0,-2)+'…';return t};
+    /* 1. 표지 */
+    newPage();
+    x.fillStyle=INK;x.font=`400 44px ${FONT}`;x.fillText(`${dd.getFullYear()}/${pad2(dd.getMonth()+1)}/${pad2(dd.getDate())}`,M,210);x.fillStyle='#111';x.fillRect(M,240,820,6);
+    x.font=`20px ${FONT}`;x.fillStyle='#333';x.fillText('The secret of education lies in respecting the pupil',M,280);
+    const gr=x.createLinearGradient(0,420,0,780);gr.addColorStop(0,'#1666a8');gr.addColorStop(1,BLUE);x.fillStyle=gr;x.font=`300 230px ${FONT}`;x.fillText('ONE',M-10,600);x.fillText('REPORT',M-10,790);
+    x.fillStyle=INK;x.font=`400 46px ${FONT}`;x.fillText(n,M,920);x.font=`26px ${FONT}`;x.fillStyle='#444';x.fillText(String(c),M,970);x.fillText(e.title,M,1010);
+    x.fillStyle=BLUE;x.font=`bold 26px ${FONT}`;x.fillText('블라인드 테스트 통과',M,1070);
+    /* 통과 도장 */
+    x.save();x.translate(PW-M-110,1010);x.rotate(-14*Math.PI/180);x.strokeStyle='#c8302b';x.lineWidth=6;x.beginPath();x.arc(0,0,92,0,7);x.stroke();x.lineWidth=3;x.beginPath();x.arc(0,0,78,0,7);x.stroke();
+    x.fillStyle='#c8302b';x.textAlign='center';x.font=`900 56px ${FONT}`;x.fillText('통과',0,14);x.font=`bold 20px ${FONT}`;x.fillText(`${dd.getMonth()+1}.${dd.getDate()}`,0,46);x.restore();x.textAlign='left';
+    try{const lg=await loadImg('assets/fermat-logo.png');x.drawImage(lg,M,1380,lg.width*.62,lg.height*.62)}catch(err){}
+    /* 2. RESULT */
+    newPage();run('RESULT','진단결과');
+    x.textAlign='center';x.fillStyle=ORG;x.font=`24px ${FONT}`;x.fillText('채점 횟수',PW/2-260,y);x.fillStyle=BLUE;x.fillText('첫 채점 점수',PW/2+260,y);
+    x.font=`400 150px ${FONT}`;x.fillStyle=ORG;x.fillText(String(atts.length),PW/2-260,y+150);x.fillStyle=BLUE;x.fillText(String(firstScore),PW/2+260,y+150);
+    x.fillStyle=GRAY;x.font=`22px ${FONT}`;x.fillText('회',PW/2-260,y+190);x.fillText('점',PW/2+260,y+190);x.fillStyle='#ccc';x.fillRect(PW/2-1,y+50,2,90);x.textAlign='left';y+=230;
+    x.fillStyle='#bbb';x.fillRect(M,y,CW,2);x.fillStyle='#eee';x.fillRect(M,y+2,CW,46);x.fillStyle=INK;x.font=`bold 22px ${FONT}`;x.textAlign='center';x.fillText('블라인드 테스트',PW/2,y+33);x.textAlign='left';y+=48;
+    const meta=[['이름',`${c} ${n}`],['처음 시작',fmtT(dx.startedAt||e.first)],['다 맞힌 시각',fmtT(e.done)],['실제로 푼 시간',dur(spent)],['채점 횟수',`${atts.length}회`],['한 번이라도 틀린 문제',`${ever.length}문항 / ${N}문항`]];
+    meta.forEach((m,i)=>{const cx=M+(i%2)*(CW/2),yy=y+Math.floor(i/2)*50;x.fillStyle=GRAY;x.font=`22px ${FONT}`;x.fillText(m[0],cx+14,yy+34);x.fillStyle=INK;x.font=`bold 22px ${FONT}`;x.textAlign='right';x.fillText(m[1],cx+CW/2-20,yy+34);x.textAlign='left'});
+    y+=150;x.fillStyle='#bbb';x.fillRect(M,y,CW,2);y+=70;
+    h3('회차별 정답률');
+    const pts=atts.map(a=>N?Math.round((N-a.w.length)/N*100):100),lo=Math.max(0,Math.floor((Math.min(...pts)-10)/10)*10);
+    const gx=M+60,gw=CW-90,gy=y+20,gh=300,px=i=>atts.length===1?gx+gw/2:gx+i*gw/(atts.length-1),py=v=>gy+(100-v)/(100-lo||1)*gh;
+    for(let k=0;k<=4;k++){const v=Math.round(lo+(100-lo)*k/4);x.fillStyle='#ececec';x.fillRect(gx,py(v),gw,1.5);x.fillStyle='#9a9a9a';x.font=`18px ${FONT}`;x.textAlign='right';x.fillText(v,gx-12,py(v)+6);x.textAlign='left'}
+    x.fillStyle='#333';x.fillRect(gx,gy+gh,gw,2);
+    x.strokeStyle=BLUE;x.lineWidth=4;x.beginPath();pts.forEach((v,i)=>i?x.lineTo(px(i),py(v)):x.moveTo(px(i),py(v)));x.stroke();
+    pts.forEach((v,i)=>{x.fillStyle=BLUE;x.beginPath();x.arc(px(i),py(v),8,0,7);x.fill();x.textAlign='center';x.font=`bold 20px ${FONT}`;x.fillText(v+'%',px(i),py(v)-18);x.fillStyle='#555';x.font=`20px ${FONT}`;x.fillText(`${i+1}차`,px(i),gy+gh+34);x.textAlign='left'});
+    y=gy+gh+70;
+    atts.forEach((a,i)=>{x.fillStyle=BLUE;x.font=`bold 21px ${FONT}`;x.fillText(`${i+1}차`,M,y+26);x.fillStyle='#666';x.font=`20px ${FONT}`;x.fillText(`${fmtT(a.t)}${a.s!=null?' · '+dur(a.s)+'째':''}`,M+70,y+26);
+      let cx=PW-M;const tags=a.w.length?a.w.map(q=>q+'번'):['모두 정답'];x.font=`bold 18px ${FONT}`;
+      [...tags].reverse().forEach(t=>{const w=x.measureText(t).width+16;cx-=w;x.fillStyle=a.w.length?'#fff3e6':'#e6f5ff';x.fillRect(cx,y+6,w,28);x.fillStyle=a.w.length?'#e57a00':BLUE;x.fillText(t,cx+8,y+27);cx-=6});
+      x.fillStyle='#eee';x.fillRect(M,y+44,CW,1.5);y+=48});
+    /* 3. 문항별 진단 */
+    newPage();run('RESULT','진단결과');
+    const cn=q=>(CC.concepts||[])[q-st]||'';
+    const good=[];for(let q=st+N-1;q>=st&&good.length<3;q--)if(!ever.includes(q)&&cn(q))good.unshift(q);
+    const types=(title,col,list,emp)=>{const cx0=title==='대표 우수 유형'?M:M+CW/2+20;let yy=y;x.fillStyle=col;x.font=`bold 30px ${FONT}`;x.fillText(title,cx0,yy);yy+=24;
+      if(!list.length){x.fillStyle='#999';x.font=`20px ${FONT}`;x.fillText(emp,cx0,yy+28)}
+      list.forEach(q=>{x.fillStyle='#f6f6f6';x.fillRect(cx0,yy,CW/2-20,36);x.fillStyle=col;x.fillRect(cx0,yy,62,36);x.fillStyle='#fff';x.font=`bold 18px ${FONT}`;x.textAlign='center';x.fillText(q+'번',cx0+31,yy+25);x.textAlign='left';x.fillStyle='#333';x.font=`19px ${FONT}`;x.fillText(ellip(cn(q),CW/2-110),cx0+74,yy+25);yy+=42})};
+    types('대표 우수 유형',BLUE,good,'-');types('대표 취약 유형',ORG,ever.slice(0,3),'틀린 문제가 없어요');y+=230;
+    h3('문항별 진단');y+=4;
+    const rowH=Math.min(46,(PH-140-y)/Math.max(N,1));
+    for(let k=0;k<N;k++){const q=st+k,w=ever.includes(q);let last=-1;atts.forEach((a,i)=>{if(a.w.includes(q))last=i});const f=w?last+2:1;const yy=y+k*rowH,mid=yy+rowH/2;
+      if(w){x.strokeStyle=ORG;x.lineWidth=2;x.strokeRect(M,mid-14,64,28);x.fillStyle=ORG;x.font=`bold 17px ${FONT}`}else{x.fillStyle=GRAY;x.font=`17px ${FONT}`}
+      x.textAlign='center';x.fillText(q+'번',M+32,mid+6);x.textAlign='left';
+      x.fillStyle='#444';x.font=`18px ${FONT}`;x.fillText(ellip(cn(q),440),M+84,mid+6);
+      const mx=M+560;if(w){x.strokeStyle='#f0442c';x.lineWidth=4;x.beginPath();x.moveTo(mx-10,mid-10);x.lineTo(mx+10,mid+10);x.moveTo(mx+10,mid-10);x.lineTo(mx-10,mid+10);x.stroke()}else{x.strokeStyle=BLUE;x.lineWidth=4;x.beginPath();x.arc(mx,mid,11,0,7);x.stroke()}
+      const bx=M+600,bw=CW-600-130;x.fillStyle='#f0f0f0';x.fillRect(bx,mid-9,bw,18);x.fillStyle='#cfd8df';x.fillRect(bx,mid-9,bw/f,18);
+      x.fillStyle=GRAY;x.font=`17px ${FONT}`;x.textAlign='right';x.fillText(w?`${f}차에 고침`:'1차 정답',PW-M,mid+6);x.textAlign='left';
+      x.fillStyle='#f2f2f2';x.fillRect(M,yy+rowH-1,CW,1)}
+    /* 4. ASSESSMENT */
+    newPage();run('ASSESSMENT','학습평가');
+    x.fillStyle=INK;x.font=`bold 22px ${FONT}`;x.fillText('평가목적',M,y);x.font=`22px ${FONT}`;
+    ['틀린 개수를 알려 주지 않는 블라인드 테스트로 처음부터 다시 검토하는 습관을 기르고,','틀렸던 문제의 원인을 분석해 다음 시험의 검토 방향을 세워요.'].forEach((l,i)=>x.fillText(l,M+120,y+i*34));y+=120;
+    x.font=`500 48px ${FONT}`;x.fillText('summary',M,y);x.font=`22px ${FONT}`;x.fillText('평가결과요약',M+205,y);y+=60;
+    const sum=[['첫 채점 정답률',firstScore,'%',BLUE],['최종 정답률',100,'%',BLUE],['채점 횟수',atts.length,'회',BLUE],['틀렸던 문제',ever.length,'문항',ORG]];
+    sum.forEach((sv,i)=>{const cx=M+CW/8+i*CW/4;x.textAlign='center';x.fillStyle=sv[3];x.font=`21px ${FONT}`;x.fillText(sv[0],cx,y);x.font=`400 76px ${FONT}`;const t=String(sv[1]);x.fillText(t,cx-14,y+92);const tw=x.measureText(t).width;x.font=`24px ${FONT}`;x.textAlign='left';x.fillText(sv[2],cx-14+tw/2+6,y+92)});x.textAlign='left';y+=170;
+    const tk=Object.entries(e.tally||{}).sort((a,b)=>b[1]-a[1]);
+    h3('나의 실수 유형');y+=10;
+    if(!tk.length){x.fillStyle='#999';x.font=`22px ${FONT}`;x.fillText(ever.length?'학생 화면에서 분석 결과를 열면 실수 유형이 기록돼요.':'틀린 문제가 없어요.',M,y+10);y+=50}
+    tk.forEach(([k,v])=>{x.fillStyle='#333';x.font=`22px ${FONT}`;x.fillText(k,M,y+20);x.fillStyle='#eee';x.fillRect(M+220,y+6,CW-340,18);x.fillStyle=BLUE;x.fillRect(M+220,y+6,(CW-340)*v/tk[0][1],18);x.fillStyle=INK;x.font=`bold 22px ${FONT}`;x.textAlign='right';x.fillText(v+'번',PW-M,y+22);x.textAlign='left';y+=46});
+    if(tk.length){x.fillStyle='#666';x.font=`20px ${FONT}`;x.fillText(`가장 많은 실수는 ${tk[0][0]}예요. 다음 시험에서는 이 부분부터 검토하세요.`,M,y+14);y+=50}
+    y+=30;h3('틀렸던 문제');y+=6;
+    if(!ever.length){x.fillStyle='#999';x.font=`22px ${FONT}`;x.fillText('한 번에 모두 맞혔어요.',M,y+16)}
+    ever.forEach(q=>{if(y>PH-200)return;let rounds=[];atts.forEach((a,i)=>{if(a.w.includes(q))rounds.push(i+1)});
+      x.fillStyle='#f2f2f2';x.fillRect(M,y,CW,64);x.fillStyle=ORG;x.fillRect(M+16,y+17,64,30);x.fillStyle='#fff';x.font=`bold 18px ${FONT}`;x.textAlign='center';x.fillText(q+'번',M+48,y+39);x.textAlign='left';
+      x.fillStyle='#222';x.font=`bold 22px ${FONT}`;x.fillText(ellip(cn(q)||'',CW-360),M+96,y+40);x.fillStyle='#777';x.font=`19px ${FONT}`;x.textAlign='right';x.fillText(`${rounds.join('·')}차에 틀림 → ${rounds[rounds.length-1]+1}차에 고침`,PW-M-16,y+40);x.textAlign='left';y+=74});
+    x.fillStyle='#aaa';x.font=`18px ${FONT}`;x.fillText('문제별 바른 풀이와 실수 이유는 학생 화면의 보고서에서 볼 수 있어요.',M,PH-90);
+    PAGES.push(canvasJpeg(cv));
+    saveBlob(jpegPdf(PAGES),`${c}_${n}_${e.title}_보고서.pdf`);
+    btn.textContent='받았어요';setTimeout(()=>{btn.textContent=old;btn.disabled=false},2500);
+  }catch(err){console.error(err);toast('보고서를 만들지 못했어요. 다시 눌러 주세요.');btn.textContent=old;btn.disabled=false}
+}
+function fmtT(t){if(!t)return '-';const d=new Date(t);return `${d.getMonth()+1}.${d.getDate()} ${hm(t)}`}
+
 function studentRecord(c,n){
   const rows=DATA.rows.filter(r=>r.ev!=='note'&&String(r.cls)===String(c)&&String(r.name)===String(n)&&inRange(r.at)).sort((a,b)=>a.at-b.at);
   const sess={};
@@ -274,7 +392,7 @@ function studentRecord(c,n){
   rows.forEach(r=>{const e=exams[r.examId]||(exams[r.examId]={id:r.examId,title:r.examTitle,total:r.total,first:r.at,last:r.at,attempts:0,done:null,firstWrong:null,time:0,tally:null,everWrong:''});
     e.first=Math.min(e.first,r.at);e.last=Math.max(e.last,r.at);
     if(r.ev==='attempt'||r.ev==='done'){e.attempts=Math.max(e.attempts,Number(r.attempt)||0);if(Number(r.attempt)===1)e.firstWrong=Number(r.wrongCount)||0}
-    if(r.ev==='done'){e.done=r.at;const x=J(r.extra);if(x&&x.runSec)e.runSec=x.runSec}
+    if(r.ev==='done'){e.done=r.at;const x=J(r.extra);if(x&&x.runSec)e.runSec=x.runSec;if(x)e.dx=x}
     if(r.ev==='report'){const x=J(r.extra);if(x&&x.tally)e.tally=x.tally;e.everWrong=r.wrong}});
   sessions.forEach(s=>{if(exams[s.examId])exams[s.examId].time+=s.active});
   const tally={};Object.values(exams).forEach(e=>e.tally&&Object.entries(e.tally).forEach(([k,v])=>tally[k]=(tally[k]||0)+v));
@@ -347,12 +465,15 @@ function renderDetail(det,c,n,rec){
   det.innerHTML=`<div class="row" style="justify-content:space-between"><h2>${esc(c)} ${esc(n)}</h2><span class="hint">${md(from)} ~ ${md(to)}</span></div>
   <div class="tiles"><div class="tile"><div class="label">공부한 날</div><div class="v">${Object.keys(rec.days).length}일</div></div><div class="tile"><div class="label">총 푼 시간</div><div class="v">${dur(rec.total)}</div></div><div class="tile"><div class="label">완료한 시험</div><div class="v">${done.length} / ${rec.exams.length}</div></div><div class="tile"><div class="label">평균 채점 횟수</div><div class="v">${avg}회</div></div></div>
   <div><div class="label" style="margin-bottom:6px">날짜별 공부량</div><div class="days">${dayStrip(rec)}</div><p class="hint" style="margin:4px 0 0">색이 진할수록 오래 공부한 날이에요 (15분 · 45분 기준).</p></div>
-  <div><div class="label" style="margin-bottom:6px">시험별 기록</div>${rec.exams.length?`<div class="tbl"><table><thead><tr><th>시험</th><th>처음 시작</th><th>결과</th><th>채점</th><th>처음 틀린 수</th><th>푼 시간</th></tr></thead><tbody>${rec.exams.map(e=>`<tr><td>${esc(e.title)}</td><td>${md(e.first)} ${hm(e.first)}</td><td>${e.done?`<span class="chip ok">${md(e.done)} ${hm(e.done)} 완료</span>`:'<span class="chip warn">진행 중</span>'}</td><td>${e.attempts||0}회</td><td>${e.firstWrong==null?'-':e.firstWrong+'개 / '+(e.total||'?')}</td><td>${dur(e.runSec||e.time)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">이 기간에 푼 시험이 없어요.</p>'}</div>
+  <div><div class="label" style="margin-bottom:6px">시험별 기록</div>${rec.exams.length?`<div class="tbl"><table><thead><tr><th>시험</th><th>처음 시작</th><th>결과</th><th>채점</th><th>처음 틀린 수</th><th>푼 시간</th><th>보고서</th></tr></thead><tbody>${rec.exams.map(e=>`<tr><td>${esc(e.title)}</td><td>${md(e.first)} ${hm(e.first)}</td><td>${e.done?`<span class="chip ok">${md(e.done)} ${hm(e.done)} 완료</span>`:'<span class="chip warn">진행 중</span>'}</td><td>${e.attempts||0}회</td><td>${e.firstWrong==null?'-':e.firstWrong+'개 / '+(e.total||'?')}</td><td>${dur(e.runSec||e.time)}</td><td>${e.done?`<div class="rbtns"><button class="btn small" data-rep="${esc(e.id)}">보고서 PDF</button><button class="btn small kbtn" data-kak="${esc(e.id)}">카톡</button></div>`:'-'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">이 기간에 푼 시험이 없어요.</p>'}</div>
   ${tk.length?`<div><div class="label" style="margin-bottom:6px">자주 한 실수 (AI 분석 기준)</div><div class="tally">${tk.map(([k,v])=>`<div class="trow"><span>${esc(k)}</span><span class="tbar"><i style="width:${Math.round(v/tk[0][1]*100)}%"></i></span><b>${v}번</b></div>`).join('')}</div></div>`:''}
   <div><div class="label" style="margin-bottom:6px">오답노트</div><div class="tlist" id="notelist"></div></div>
   <div><div class="label" style="margin-bottom:6px">공부한 순서대로</div><div class="timeline"></div></div>
   <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름" value="${esc(ls.get('dabogi.t.acad','페르마 수학학원'))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div>
-  <div class="opts" id="opts"><span class="lbl">요약문에 넣을 내용 · 체크한 것만 들어가요</span>${OPTS.map(o=>`<label class="opt"><input type="checkbox" data-k="${o[0]}" ${popt[o[0]]?'checked':''}><span>${o[1]}</span></label>`).join('')}</div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
+  <div class="opts" id="opts"><span class="lbl">요약문에 넣을 내용 · 체크한 것만 들어가요</span>${OPTS.map(o=>`<label class="opt"><input type="checkbox" data-k="${o[0]}" ${popt[o[0]]?'checked':''}><span>${o[1]}</span></label>`).join('')}</div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><button class="btn kbtn" id="ksum">요약문 카카오톡 보내기</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
+  det.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>makeReportPdf(c,n,rec.exams.find(e=>e.id===b.dataset.rep),b));
+  det.querySelectorAll('[data-kak]').forEach(b=>b.onclick=()=>kakaoResult(c,n,rec.exams.find(e=>e.id===b.dataset.kak)));
+  det.querySelector('#ksum').onclick=()=>kakaoText(det.querySelector('#pmsg').value);
   const nl=det.querySelector('#notelist'),nts=notesOf(c,n);
   if(!nts.length)nl.innerHTML='<p class="hint" style="margin:0">아직 만든 오답노트가 없어요.</p>';
   nts.forEach(nt=>{const it=h(`<div class="titem"><div><strong>${md(nt.at)} ${hm(nt.at)}</strong> <span class="hint">${esc(nt.title)} · ${nt.keys.length}문제</span></div><div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn small" data-m="q">문제지 PDF</button><button class="btn small ghost" data-m="a">빠른정답 PDF</button></div></div>`);
