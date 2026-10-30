@@ -369,12 +369,24 @@ async function makeReportPdf(c,n,e,btn){
     if(!tk.length){x.fillStyle='#999';x.font=`22px ${FONT}`;x.fillText(ever.length?'학생 화면에서 분석 결과를 열면 실수 유형이 기록돼요.':'틀린 문제가 없어요.',M,y+10);y+=50}
     tk.forEach(([k,v])=>{x.fillStyle='#333';x.font=`22px ${FONT}`;x.fillText(k,M,y+20);x.fillStyle='#eee';x.fillRect(M+220,y+6,CW-340,18);x.fillStyle=BLUE;x.fillRect(M+220,y+6,(CW-340)*v/tk[0][1],18);x.fillStyle=INK;x.font=`bold 22px ${FONT}`;x.textAlign='right';x.fillText(v+'번',PW-M,y+22);x.textAlign='left';y+=46});
     if(tk.length){x.fillStyle='#666';x.font=`20px ${FONT}`;x.fillText(`가장 많은 실수는 ${tk[0][0]}예요. 다음 시험에서는 이 부분부터 검토하세요.`,M,y+14);y+=50}
-    y+=30;h3('틀렸던 문제');y+=6;
+    y+=30;h3('틀렸던 문제 분석');y+=6;
+    const wrapT=(t,w,font)=>{x.font=font;const out=[];let line='';for(const ch of String(t||'')){const tl=line+ch;if(x.measureText(tl).width>w&&line){out.push(line);line=ch}else line=tl}if(line)out.push(line);return out};
+    const ensure=hh=>{if(y+hh>PH-110){newPage();run('ASSESSMENT','학습평가')}};
     if(!ever.length){x.fillStyle='#999';x.font=`22px ${FONT}`;x.fillText('한 번에 모두 맞혔어요.',M,y+16)}
-    ever.forEach(q=>{if(y>PH-200)return;let rounds=[];atts.forEach((a,i)=>{if(a.w.includes(q))rounds.push(i+1)});
-      x.fillStyle='#f2f2f2';x.fillRect(M,y,CW,64);x.fillStyle=ORG;x.fillRect(M+16,y+17,64,30);x.fillStyle='#fff';x.font=`bold 18px ${FONT}`;x.textAlign='center';x.fillText(q+'번',M+48,y+39);x.textAlign='left';
-      x.fillStyle='#222';x.font=`bold 22px ${FONT}`;x.fillText(ellip(cn(q)||'',CW-360),M+96,y+40);x.fillStyle='#777';x.font=`19px ${FONT}`;x.textAlign='right';x.fillText(`${rounds.join('·')}차에 틀림 → ${rounds[rounds.length-1]+1}차에 고침`,PW-M-16,y+40);x.textAlign='left';y+=74});
-    x.fillStyle='#aaa';x.font=`18px ${FONT}`;x.fillText('문제별 바른 풀이와 실수 이유는 학생 화면의 보고서에서 볼 수 있어요.',M,PH-90);
+    let noWhy=false;
+    ever.forEach(q=>{const W=(e.why||{})[q];let rounds=[];atts.forEach((a,i)=>{if(a.w.includes(q))rounds.push(i+1)});
+      /* 상자 높이 미리 계산 */
+      const lines=[];
+      if(W&&W.rounds&&W.rounds.length){W.rounds.forEach(r=>{const head=`${r.r}차  내 답 ${r.v||'(빈칸)'}${r.ty?'  ['+r.ty+']':''}`;lines.push({t:head,k:'h'});wrapT(r.re||'',CW-90,`20px ${FONT}`).forEach(l=>lines.push({t:l,k:'r'}))});
+        if(W.tip){lines.push({t:'다음에 검토할 때',k:'l'});wrapT(W.tip,CW-90,`20px ${FONT}`).forEach(l=>lines.push({t:l,k:'r'}))}}
+      else{noWhy=true;lines.push({t:`${rounds.join('·')}차에 틀림 → ${rounds[rounds.length-1]+1}차에 고침`,k:'r'})}
+      const boxH=64+lines.length*30+14;ensure(Math.min(boxH,PH-400));
+      x.fillStyle='#f2f2f2';x.fillRect(M,y,CW,boxH);x.fillStyle=ORG;x.fillRect(M+16,y+17,64,30);x.fillStyle='#fff';x.font=`bold 18px ${FONT}`;x.textAlign='center';x.fillText(q+'번',M+48,y+39);x.textAlign='left';
+      x.fillStyle='#222';x.font=`bold 22px ${FONT}`;x.fillText(ellip((W&&W.c)||cn(q)||'',CW-130),M+96,y+40);
+      let yy=y+64;lines.forEach(L=>{if(L.k==='h'){x.fillStyle='#c0392b';x.font=`bold 20px ${FONT}`}else if(L.k==='l'){x.fillStyle=BLUE;x.font=`bold 19px ${FONT}`}else{x.fillStyle='#444';x.font=`20px ${FONT}`}
+        x.fillText(L.t,M+(L.k==='h'||L.k==='l'?30:50),yy+20);yy+=30});
+      y+=boxH+10});
+    x.fillStyle='#aaa';x.font=`18px ${FONT}`;x.fillText(noWhy?'일부 문제는 학생이 보고서를 열기 전이라 실수 이유가 아직 기록되지 않았어요.':'실수 이유는 학생이 받은 AI 분석 보고서와 같은 내용이에요.',M,PH-90);
     PAGES.push(canvasJpeg(cv));
     saveBlob(jpegPdf(PAGES),`${c}_${n}_${e.title}_보고서.pdf`);
     btn.textContent='받았어요';setTimeout(()=>{btn.textContent=old;btn.disabled=false},2500);
@@ -393,6 +405,7 @@ function studentRecord(c,n){
     e.first=Math.min(e.first,r.at);e.last=Math.max(e.last,r.at);
     if(r.ev==='attempt'||r.ev==='done'){e.attempts=Math.max(e.attempts,Number(r.attempt)||0);if(Number(r.attempt)===1)e.firstWrong=Number(r.wrongCount)||0}
     if(r.ev==='done'){e.done=r.at;const x=J(r.extra);if(x&&x.runSec)e.runSec=x.runSec;if(x)e.dx=x}
+    if(r.ev==='why'){const x=J(r.extra);if(x&&x.q){(e.why=e.why||{})[x.q]=x}}
     if(r.ev==='report'){const x=J(r.extra);if(x&&x.tally)e.tally=x.tally;e.everWrong=r.wrong}});
   sessions.forEach(s=>{if(exams[s.examId])exams[s.examId].time+=s.active});
   const tally={};Object.values(exams).forEach(e=>e.tally&&Object.entries(e.tally).forEach(([k,v])=>tally[k]=(tally[k]||0)+v));

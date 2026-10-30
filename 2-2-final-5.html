@@ -712,6 +712,10 @@ function renderCert(ex,pr){
         ${rows}
         ${A?`${A.solution?`<div class="ablock"><span class="label">바른 풀이</span><div>${esc(A.solution)}</div></div>`:''}${A.tip?`<div class="ablock"><span class="label">다음에 검토할 때</span><div>${esc(A.tip)}</div></div>`:''}`:'<p class="hint" style="margin:0">이 시험에는 AI 분석이 없어요. 선생님과 함께 왜 틀렸는지 확인해 보세요.</p>'}</div>`);
       why.appendChild(card)});
+    /* 선생님 보고서용: 틀린 문제마다 내 답·실수 유형·이유를 기록으로 보내요 */
+    if(EP&&!pr.whySent&&!pr.remote){pr.whySent=true;saveProg();
+      everWrong.forEach(q=>{const A=qmap[q];const rounds=pr.attempts.map((a,i)=>a.w.includes(q)?{r:i+1,v:String((a.a&&a.a[q])||'').slice(0,40)}:null).filter(Boolean).map(m=>{const hit=A&&(A.mistakes||[]).find(x=>String(x.answer).split('|').some(v=>unitless(v)===unitless(m.v)));return Object.assign(m,hit?{ty:hit.type,re:hit.reason}:{re:A?'예상한 실수 목록에 없는 답':''})});
+        logEv('why',ex,{wrong:String(qn(ex,q)),extra:JSON.stringify({q:qn(ex,q),c:A&&A.concept||'',rounds,tip:A&&A.tip||''}).slice(0,1990)})})}
     const ks=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
     if(EP&&!pr.reported){pr.reported=true;saveProg();logEv('report',ex,{attempt:pr.attempts.length,wrong:everWrong.map(q=>qn(ex,q)).join(','),wrongCount:everWrong.length,extra:JSON.stringify({tally,runSec:spent})})}
     if(ks.length){const s=c.querySelector('.summary');s.hidden=false;
