@@ -88,6 +88,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 body.noscroll{overflow:hidden}
 .sheet-imgs{display:flex;flex-direction:column;gap:10px}
 .sheet-imgs img{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
+.sq{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 10px 6px}.sq img{border:0;border-radius:0;display:block}
+.sq-n{display:flex;align-items:baseline;gap:8px;margin:0 0 4px 2px}.sq-n b{color:#00abff;font:800 26px/1 system-ui,sans-serif}.sq-n span{font-size:12px;color:#888;font-weight:700}
 .noimg{border:1px dashed var(--line);border-radius:8px;padding:28px;text-align:center;color:var(--muted)}
 .answers{padding-left:20px}
 .ans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px 22px}
@@ -524,13 +526,16 @@ function renderExam(ex){
   <div class="sheetview" id="sheetview" hidden role="dialog" aria-modal="true" aria-label="시험지"><div class="sv-bar"><strong>${esc(ex.title)}</strong><span class="hint" id="svpage"></span><button class="btn" id="closesheet" type="button">답안지로 돌아가기</button></div><div class="sv-body"><div class="sheet-imgs"></div><p class="hint" style="text-align:center">두 손가락으로 벌리면 크게 볼 수 있어요.</p></div></div>
   <section class="panel answers"><div class="row" style="justify-content:space-between"><span class="label">답안지</span>${ex.images.length?'':'<span class="hint">종이 시험지를 보고 답을 적어요</span>'}</div><div class="ans-grid"></div><div class="mkeys" id="mkeys" hidden></div><div id="vbox"></div><div class="rules" id="rules"><strong>채점 규칙</strong><span>다 맞을 때까지 몇 번이든 채점할 수 있지만, 틀리면 다음 채점까지 기다려야 해요.</span><div class="rsteps">${[1,2,3,4,5].map(n=>`<span><b>${n}차 후</b>${waitMin(n)}분</span>`).join('')}<span><b>그다음</b>5분씩 더</span></div><span>답 하나만 바꿔 보지 말고, 처음부터 다시 풀어서 한 번에 맞히는 게 가장 빨라요.</span></div><button class="btn" id="grade">채점하기</button><p class="hint" style="margin:0">객관식은 번호를 누르고, 주관식은 칸을 누르면 나오는 수식 버튼으로 분수·제곱·루트를 넣어요. 단위(cm, 개 등)는 안 써도 돼요. 시험지는 위의 <b>시험지 보기</b>로 언제든 열 수 있어요.</p></section></div>`);
   const imgs=lay.querySelector('.sheet-imgs');
-  if(ex.images.length) ex.images.forEach((src,i)=>{const im=document.createElement('img');im.src=src;im.alt=`시험지 ${i+1}쪽`;imgs.appendChild(im)});
+  const perQ=ex.pageLabel==='문제';
+  if(ex.images.length) ex.images.forEach((src,i)=>{const im=document.createElement('img');im.src=src;
+    if(perQ){const q=h(`<div class="sq"><div class="sq-n"><b>${String(qn(ex,i)).padStart(2,'0')}</b><span>${qn(ex,i)}번</span></div></div>`);im.alt=`${qn(ex,i)}번 문제`;q.appendChild(im);imgs.appendChild(q)}
+    else{im.alt=`시험지 ${i+1}쪽`;imgs.appendChild(im)}});
   const sv=lay.querySelector('#sheetview'),svb=lay.querySelector('.sv-body');let svTop=0;
   if(ex.images.length){
     const open=()=>{sv.hidden=false;document.body.classList.add('noscroll');svb.scrollTop=svTop;updPage();lay.querySelector('#closesheet').focus()};
     const close=()=>{svTop=svb.scrollTop;sv.hidden=true;document.body.classList.remove('noscroll');lay.querySelector('#opensheet').focus()};
-    const updPage=()=>{const ims=[...imgs.querySelectorAll('img')];let k=0;ims.forEach((im,i)=>{if(im.offsetTop-svb.scrollTop<svb.clientHeight/2)k=i});lay.querySelector('#svpage').textContent=`${k+1} / ${ims.length}쪽`};
-    lay.querySelector('#opensheet').onclick=open;lay.querySelector('#closesheet').onclick=close;svb.addEventListener('scroll',updPage,{passive:true});
+    const updPage=()=>{const ims=[...imgs.children];const top=svb.getBoundingClientRect().top;let k=0;ims.forEach((im,i)=>{if(im.getBoundingClientRect().top-top<140)k=i});lay.querySelector('#svpage').textContent=perQ?`${k+1}번 / ${ims.length}문제`:`${k+1} / ${ims.length}쪽`};
+    lay.querySelector('#opensheet').onclick=open;lay.querySelector('#closesheet').onclick=close;svb.addEventListener('scroll',updPage,{passive:true});imgs.querySelectorAll('img').forEach(im=>im.addEventListener('load',()=>{if(!sv.hidden)updPage()}));
     sv.addEventListener('keydown',e=>{if(e.key==='Escape')close()});}
   const grid=lay.querySelector('.ans-grid');
   const types=qtypes(ex);let lastIn=null;
