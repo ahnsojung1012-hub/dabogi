@@ -197,40 +197,64 @@ async function makeNotePdf(c,n,note,btn){
     const book=books.find(b=>b.id===note.book);if(!book)throw new Error('book');
     const ks=new Set(note.keys),items=[];
     book.sets.forEach(s=>s.items.forEach(([no,page,w,hh])=>{if(ks.has(s.key+':'+no))items.push({s,no,page,src:`notes/${book.id}/${s.key}/${no}.jpg`,ans:(book.answers||{})[s.key+':'+no]||''})}));
-    const PW=1240,PH=1754,M=80,CW=PW-2*M,FONT='"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
-    const PAGES=[];let pageN=0,cv,x,y;
-    const newPage=()=>{if(cv)PAGES.push(canvasJpeg(cv));
-      cv=document.createElement('canvas');cv.width=PW;cv.height=PH;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,PW,PH);pageN++;y=M;
-      x.fillStyle='#8a94a3';x.font=`22px ${FONT}`;x.textAlign='right';x.fillText(`${c} ${n} · 오답노트 · ${pageN}`,PW-M,PH-40);x.textAlign='left'};
+    /* 매쓰플랫 시험지 모양: 위쪽 파란 띠, 왼쪽 파란 탭, 큰 파란 번호, 2단, 아래 쪽번호와 파란 선 */
+    const PW=1240,PH=1754,M=62,CW=PW-2*M,BLUE='#00abff',INK='#1b1b1b',GRAY='#7c7c7c',LINE='#e3e3e3',SKY='#9fdcfb';
+    const FONT='"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+    const pad2=k=>String(k).padStart(2,'0');
+    const d=new Date(note.at),dateTxt=`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+    const titleTxt=`${n} 오답노트`;
+    const PAGES=[];let pageN=0,cv,x,y,top;const BOTTOM=PH-112;
+    const rrect=(X,Y,W,H,r)=>{x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()};
+    const newPage=(first)=>{if(cv)PAGES.push(canvasJpeg(cv));
+      cv=document.createElement('canvas');cv.width=PW;cv.height=PH;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,PW,PH);pageN++;
+      x.fillStyle=BLUE;x.fillRect(0,0,PW,44);
+      x.fillStyle=GRAY;x.font=`bold 26px ${FONT}`;x.textAlign='left';x.fillText(pad2(pageN),M,PH-44);
+      x.fillStyle=SKY;x.fillRect(M+52,PH-53,CW-52,2.5);
+      if(first){
+        x.fillStyle=BLUE;x.beginPath();x.moveTo(0,134);x.lineTo(270,134);x.arcTo(310,134,310,174,40);x.lineTo(310,250);x.arcTo(310,290,270,290,40);x.lineTo(0,290);x.closePath();x.fill();
+        x.fillStyle='#fff';x.textAlign='right';x.font=`bold 36px ${FONT}`;x.fillText('오답노트',284,200);x.font=`bold 23px ${FONT}`;x.fillText(`${items.length}문제 | 페르마 수학학원`,284,248);
+        x.textAlign='left';x.fillStyle=INK;x.font=`bold 48px ${FONT}`;x.fillText(titleTxt,338,206);
+        x.fillStyle=GRAY;x.font=`bold 26px ${FONT}`;x.fillText(`${book.title} · ${dateTxt}`,338,252);
+        x.fillStyle='#555';x.font=`bold 21px ${FONT}`;x.fillText('이름',338,334);x.fillStyle=INK;x.font=`22px ${FONT}`;x.fillText(`${c} ${n}`,390,333);x.fillStyle='#777';x.fillRect(384,344,180,1.5);
+        y=top=400;
+      }else{
+        x.textAlign='left';x.font=`bold 28px ${FONT}`;x.fillStyle=BLUE;x.fillText('오답노트',M+6,96);const w=x.measureText('오답노트 ').width;
+        x.fillStyle=INK;x.fillText(`${n} · ${book.title}`,M+6+w,96);x.fillStyle=SKY;x.fillRect(M,116,CW,2.5);
+        y=top=158;
+      }};
     const flushLast=()=>PAGES.push(canvasJpeg(cv));
-    newPage();
-    const d=new Date(note.at);
-    x.fillStyle='#13283b';x.fillRect(M,y,CW,96);x.fillStyle='#f4c84a';x.font=`bold 22px ${FONT}`;x.fillText('페르마 수학학원',M+24,y+36);
-    x.fillStyle='#ffffff';x.font=`bold 38px ${FONT}`;x.fillText(`${n} 오답노트`,M+24,y+80);
-    x.font=`22px ${FONT}`;x.textAlign='right';x.fillText(`${c} · ${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,M+CW-24,y+40);x.fillText(`${book.title} · ${items.length}문제`,M+CW-24,y+78);x.textAlign='left';
-    y+=120;
-    const GAP=44,COLW=(CW-GAP)/2,SOLVE=150,BOTTOM=PH-80;
-    let col=0,top=y;const colX=()=>M+col*(COLW+GAP);
-    const divider=()=>{x.fillStyle='#d3dbe4';x.fillRect(M+COLW+GAP/2,top,1.5,BOTTOM-top)};
+    newPage(true);
+    const GAP=56,COLW=(CW-GAP)/2,NUMW=78,SOLVE=130;
+    let col=0;const colX=()=>M+col*(COLW+GAP);
+    const divider=()=>{x.fillStyle=LINE;x.fillRect(M+COLW+GAP/2,top-6,2,BOTTOM-top+6)};
     for(let i=0;i<items.length;i++){const it=items[i];btn.textContent=`만드는 중… ${i+1}/${items.length}`;
       const im=await loadImg(it.src);
-      const sc=Math.min(COLW/im.width,0.74),iw=im.width*sc,ih=im.height*sc,blockH=40+ih+SOLVE;
-      if(y+blockH>BOTTOM){if(col===0){col=1;y=top}else{divider();newPage();col=0;top=y}}
+      const sc=Math.min((COLW-NUMW)/im.width,0.78),iw=im.width*sc,ih=im.height*sc,blockH=44+ih+SOLVE;
+      if(y+blockH>BOTTOM&&y>top){if(col===0){col=1;y=top}else{divider();newPage(false);col=0}}
       const cx=colX();
-      x.fillStyle='#c23b2c';x.font=`bold 26px ${FONT}`;x.fillText(`${i+1}.`,cx,y+26);
-      x.fillStyle='#566373';x.font=`19px ${FONT}`;let lab=`${it.no}번 · ${it.page}쪽 · ${it.s.title}`;while(x.measureText(lab).width>COLW-50&&lab.length>6)lab=lab.slice(0,-2)+'…';x.fillText(lab,cx+46,y+25);
-      y+=40;x.drawImage(im,cx,y,iw,ih);y+=ih+SOLVE;
-      x.fillStyle='#eef1f4';x.fillRect(cx,y-14,COLW,1)}
+      /* 문제 위: 몇 쪽 몇 번인지 (원래 시험지의 단원·정답률 줄 자리) */
+      x.font=`bold 19px ${FONT}`;const pill=`${it.page}쪽 ${it.no}번`;const pw=x.measureText(pill).width+20;
+      x.fillStyle=BLUE;rrect(cx,y,pw,30,6);x.fill();x.fillStyle='#fff';x.fillText(pill,cx+10,y+22);
+      x.fillStyle=GRAY;x.font=`18px ${FONT}`;let lab=`| ${it.s.title}`;while(x.measureText(lab).width>COLW-pw-14&&lab.length>4)lab=lab.slice(0,-2)+'…';x.fillText(lab,cx+pw+10,y+22);
+      y+=44;
+      x.fillStyle=BLUE;x.font=`bold 46px ${FONT}`;x.fillText(pad2(i+1),cx,y+40);
+      x.drawImage(im,cx+NUMW,y,iw,ih);y+=ih+SOLVE}
     divider();
-    newPage();
-    x.fillStyle='#13283b';x.font=`bold 40px ${FONT}`;x.fillText('빠른 정답',M,y+40);y+=80;
-    const cols=2,colW=CW/cols,LH=36;
-    const wrap=t=>{x.font=`24px ${FONT}`;const out=[];let line='';for(const ch of t.split(/(\s+)/)){const tryL=line+ch;if(x.measureText(tryL).width>colW-150&&line.trim()){out.push(line.trim());line=ch.trimStart()}else line=tryL}if(line.trim())out.push(line.trim());return out.length?out:['']};
-    for(let i=0;i<items.length;i+=cols){const row=items.slice(i,i+cols).map(it=>wrap(ansText(it.ans)||'답지에 없음'));
-      const hRow=Math.max(...row.map(r=>r.length))*LH+18;if(y+hRow>PH-90){newPage();y+=10}
-      row.forEach((lines,k)=>{const it=items[i+k],cx=M+k*colW;x.fillStyle='#c23b2c';x.font=`bold 24px ${FONT}`;x.fillText(`${i+k+1}. ${it.no}`,cx,y+26);
-        x.fillStyle='#14202e';x.font=`24px ${FONT}`;lines.forEach((l,j)=>x.fillText(l,cx+140,y+26+j*LH))});
-      x.fillStyle='#e4e9ee';x.fillRect(M,y+hRow-8,CW,1);y+=hRow}
+    /* 빠른정답: 원래 답지처럼 가운데 제목 + 3칸 표 */
+    newPage(false);
+    x.textAlign='center';x.fillStyle=INK;x.font=`bold 32px ${FONT}`;x.fillText('빠른정답',PW/2,y+30);x.fillStyle='#cfcfcf';x.fillRect(PW/2-110,y-12,220,1.5);x.fillRect(PW/2-110,y+52,220,1.5);x.textAlign='left';
+    y+=92;const COLS=3,cw=CW/COLS,LH=34;x.fillStyle='#333';x.fillRect(M,y,CW,2.5);
+    const wrap=t=>{x.font=`25px ${FONT}`;const out=[];let line='';for(const ch of t.split(/(\s+)/)){const tryL=line+ch;if(x.measureText(tryL).width>cw-120&&line.trim()){out.push(line.trim());line=ch.trimStart()}else line=tryL}if(line.trim())out.push(line.trim());return out.length?out:['']};
+    for(let i=0;i<items.length;i+=COLS){const row=items.slice(i,i+COLS).map(it=>wrap(ansText(it.ans)||'답지에 없음'));
+      const hRow=Math.max(Math.max(...row.map(r=>r.length))*LH+30,74);
+      if(y+hRow>BOTTOM){x.fillStyle='#333';x.fillRect(M,y,CW,2.5);newPage(false);y+=10;x.fillStyle='#333';x.fillRect(M,y,CW,2.5)}
+      row.forEach((lines,k)=>{const it=items[i+k],cx=M+k*cw;
+        x.fillStyle=BLUE;x.font=`bold 25px ${FONT}`;x.fillText(pad2(i+k+1),cx+14,y+40);
+        x.fillStyle=GRAY;x.font=`15px ${FONT}`;x.fillText(`${it.page}쪽 ${it.no}번`,cx+14,y+62);
+        x.fillStyle=INK;x.font=`25px ${FONT}`;lines.forEach((l,j)=>x.fillText(l,cx+104,y+40+j*LH));
+        if(k)x.fillStyle='#d0d0d0',x.fillRect(cx,y,1.5,hRow)});
+      y+=hRow;x.fillStyle='#d0d0d0';x.fillRect(M,y,CW,1.5)}
+    x.fillStyle='#333';x.fillRect(M,y,CW,2.5);
     flushLast();
     saveBlob(jpegPdf(PAGES),`${c}_${n}_오답노트_${d.getMonth()+1}월${d.getDate()}일.pdf`);
     btn.textContent='받았어요';setTimeout(()=>{btn.textContent=old;btn.disabled=false},2500);
