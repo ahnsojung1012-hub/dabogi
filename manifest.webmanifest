@@ -1,0 +1,18 @@
+{
+  "id": "/blindtest/",
+  "name": "페르마 수학학원 시험 대비",
+  "short_name": "페르마 시험대비",
+  "description": "블라인드 테스트와 오답노트",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#13283b",
+  "theme_color": "#13283b",
+  "lang": "ko",
+  "icons": [
+    {"src": "assets/icons/s-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "assets/icons/s-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "assets/icons/s-mask-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
