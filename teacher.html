@@ -277,17 +277,27 @@ async function makeNotePdf(c,n,note,btn,mode){
 const APPMODE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const KAKAO_KEY='bd7ba39377d1819561c48f3a2b684a7d',SITE='https://fermat-math.github.io/blindtest/';
 let kakaoP=null;
+/* 휴대폰으로 한눈에 보는 보고서 링크 (report.html, 내용은 주소 안에 압축해서 담아요) */
+const b64u=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+async function reportUrl(data){const json=JSON.stringify(data);let s='',m='j';
+  try{if(window.CompressionStream){const cs=new CompressionStream('deflate-raw');s=b64u(new Uint8Array(await new Response(new Blob([json]).stream().pipeThrough(cs)).arrayBuffer()));m='z'}}catch(e){s=''}
+  if(!s){s=b64u(new TextEncoder().encode(json));m='j'}
+  return SITE+'report.html#d='+m+s}
 function loadKakao(){if(kakaoP)return kakaoP;
   kakaoP=new Promise((res,rej)=>{if(window.Kakao){res();return}const sc=document.createElement('script');sc.src='https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';sc.crossOrigin='anonymous';sc.onload=()=>res();sc.onerror=()=>{kakaoP=null;rej(new Error('kakao'))};document.head.appendChild(sc)})
     .then(()=>{if(!Kakao.isInitialized())Kakao.init(KAKAO_KEY)});
   kakaoP.catch(()=>{});return kakaoP}
 function resultLine(e){const N=Number(e.total)||0,fw=e.firstWrong==null?null:e.firstWrong;const fs=N&&fw!=null?Math.round((N-fw)/N*100):null;
   return `${fs!=null?`첫 채점 ${fs}점 → `:''}${e.attempts}회 만에 모두 정답 · 틀렸던 문제 ${e.everWrong?String(e.everWrong).split(',').filter(Boolean).length:(fw||0)}개 · ${dur(e.runSec||e.time)}`}
+function repDataT(c,n,e){const dx=e.dx||{},atts=(dx.attempts&&dx.attempts.length?dx.attempts:[{t:e.done,s:e.runSec,w:[]}]);const w={};
+  Object.values(e.why||{}).forEach(x=>{w[x.q]={r:(x.rounds||[]).map(r=>[r.r,r.v||'',r.ty||'',r.re||'']),tp:x.tip||''}});
+  return {v:1,n,c:String(c),e:e.id,t:e.title,N:Number(e.total)||25,a:atts.map(a=>[a.t,a.s,(a.w||[]).map(Number)]),d:e.done,sp:e.runSec||dx.runSec||e.time||0,w}}
 async function kakaoResult(c,n,e){
-  if(APPMODE&&navigator.share){shareFallback(`[페르마 수학학원 블라인드 테스트]\n${c} ${n} · ${e.title}\n${resultLine(e)}\n${SITE}`);return}
+  const ru=await reportUrl(repDataT(c,n,e)),txt=`[페르마 수학학원 블라인드 테스트]\n${c} ${n} · ${e.title}\n${resultLine(e)}\n\n보고서 보기: ${ru}`;
+  if(APPMODE&&navigator.share){shareFallback(txt);return}
   try{await loadKakao();
-    Kakao.Share.sendDefault({objectType:'feed',content:{title:`${n} · ${e.title} 블라인드 테스트 통과`,description:resultLine(e),imageUrl:SITE+'assets/report-card.png',imageWidth:800,imageHeight:420,link:{mobileWebUrl:SITE,webUrl:SITE}},buttons:[{title:'시험 대비 열기',link:{mobileWebUrl:SITE,webUrl:SITE}}]});
-  }catch(err){shareFallback(`[페르마 수학학원 블라인드 테스트]\n${c} ${n} · ${e.title}\n${resultLine(e)}`)}}
+    Kakao.Share.sendDefault({objectType:'feed',content:{title:`${n} · ${e.title} 블라인드 테스트 통과`,description:resultLine(e),imageUrl:SITE+'assets/report-card.png',imageWidth:800,imageHeight:420,link:{mobileWebUrl:ru,webUrl:ru}},buttons:[{title:'보고서 보기',link:{mobileWebUrl:ru,webUrl:ru}}]});
+  }catch(err){shareFallback(txt)}}
 async function kakaoText(t){t=String(t||'').trim();if(!t){toast('요약문이 비어 있어요');return}
   const short=t.length>200?t.slice(0,197)+'…':t;
   if(APPMODE&&navigator.share){shareFallback(t);return}
