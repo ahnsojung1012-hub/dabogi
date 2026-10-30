@@ -274,6 +274,7 @@ async function makeNotePdf(c,n,note,btn,mode){
 
 
 /* ---------- 카카오톡 보내기 ---------- */
+const APPMODE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const KAKAO_KEY='bd7ba39377d1819561c48f3a2b684a7d',SITE='https://fermat-math.github.io/blindtest/';
 let kakaoP=null;
 function loadKakao(){if(kakaoP)return kakaoP;
@@ -283,11 +284,13 @@ function loadKakao(){if(kakaoP)return kakaoP;
 function resultLine(e){const N=Number(e.total)||0,fw=e.firstWrong==null?null:e.firstWrong;const fs=N&&fw!=null?Math.round((N-fw)/N*100):null;
   return `${fs!=null?`첫 채점 ${fs}점 → `:''}${e.attempts}회 만에 모두 정답 · 틀렸던 문제 ${e.everWrong?String(e.everWrong).split(',').filter(Boolean).length:(fw||0)}개 · ${dur(e.runSec||e.time)}`}
 async function kakaoResult(c,n,e){
+  if(APPMODE&&navigator.share){shareFallback(`[페르마 수학학원 블라인드 테스트]\n${c} ${n} · ${e.title}\n${resultLine(e)}\n${SITE}`);return}
   try{await loadKakao();
     Kakao.Share.sendDefault({objectType:'feed',content:{title:`${n} · ${e.title} 블라인드 테스트 통과`,description:resultLine(e),imageUrl:SITE+'assets/report-card.png',imageWidth:800,imageHeight:420,link:{mobileWebUrl:SITE,webUrl:SITE}},buttons:[{title:'시험 대비 열기',link:{mobileWebUrl:SITE,webUrl:SITE}}]});
   }catch(err){shareFallback(`[페르마 수학학원 블라인드 테스트]\n${c} ${n} · ${e.title}\n${resultLine(e)}`)}}
 async function kakaoText(t){t=String(t||'').trim();if(!t){toast('요약문이 비어 있어요');return}
   const short=t.length>200?t.slice(0,197)+'…':t;
+  if(APPMODE&&navigator.share){shareFallback(t);return}
   try{await loadKakao();Kakao.Share.sendDefault({objectType:'text',text:short,link:{mobileWebUrl:SITE,webUrl:SITE},buttonTitle:'시험 대비 열기'});
     if(t.length>200)toast('카카오톡 글자 수 제한(200자) 때문에 뒷부분이 잘렸어요. 긴 요약문은 복사해서 보내 주세요.');
   }catch(err){shareFallback(t)}}

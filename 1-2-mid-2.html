@@ -627,6 +627,7 @@ async function unlockAnalysis(ex,answers){
 }
 const TYPES=['문제를 잘못 읽음','조건을 놓침','계산 실수','부호 실수','옮겨 적기 실수','개념 부족'];
 
+const APPMODE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const KAKAO_KEY='bd7ba39377d1819561c48f3a2b684a7d',SITE='https://fermat-math.github.io/blindtest/';
 let kakaoP=null;
 function loadKakao(){if(kakaoP)return kakaoP;
@@ -681,10 +682,11 @@ function renderCert(ex,pr){
   const shareTxt=`[페르마 수학학원 블라인드 테스트]\n${myName()} · ${ex.title}\n첫 채점 ${firstScore}점 → ${att.length}회 만에 모두 정답\n틀렸던 문제 ${everWrong.length?everWrong.map(q=>qn(ex,q)+'번').join(', '):'없음'}\n실제로 푼 시간 ${fmtDur(spent)} · ${fmtTime(pr.done)}`;
   loadKakao();
   c.querySelector('#kshare').onclick=async()=>{
+    if(APPMODE&&navigator.share){otherShare();return}  /* 홈 화면 앱에서는 카카오 공유창이 막혀서(4019) 휴대폰 공유창으로 보내요 */
     try{await loadKakao();
       Kakao.Share.sendDefault({objectType:'feed',content:{title:`${myName()} · ${ex.title} 블라인드 테스트 통과`,description:`첫 채점 ${firstScore}점 → ${att.length}회 만에 모두 정답 · 틀렸던 문제 ${everWrong.length}개 · ${fmtDur(spent)}`,imageUrl:'https://fermat-math.github.io/blindtest/assets/report-card.png',imageWidth:800,imageHeight:420,link:{mobileWebUrl:SITE,webUrl:SITE}},buttons:[{title:'시험 대비 열기',link:{mobileWebUrl:SITE,webUrl:SITE}}]});
     }catch(e){otherShare()}};
-  const otherShare=async()=>{try{if(navigator.share){await navigator.share({title:'블라인드 테스트 결과',text:shareTxt});return}}catch(e){if(e&&e.name==='AbortError')return}
+  const otherShare=async()=>{try{if(navigator.share){await navigator.share({title:'블라인드 테스트 결과',text:shareTxt+'\n'+SITE});return}}catch(e){if(e&&e.name==='AbortError')return}
     try{await navigator.clipboard.writeText(shareTxt);toast('결과를 복사했어요. 카카오톡에 붙여 넣으세요.')}catch(e){toast('공유를 열지 못했어요')}};
   c.querySelector('#oshare').onclick=otherShare;
   c.querySelector('#retry').onclick=()=>{prog._hist=prog._hist||{};(prog._hist[ex.id]=prog._hist[ex.id]||[]).push({start:pr.start,done:pr.done,spent,attempts:pr.attempts.map(a=>({t:a.t,s:a.s,w:a.w}))});
