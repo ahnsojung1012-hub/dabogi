@@ -278,6 +278,8 @@ body.noscroll{overflow:hidden}
 const STATE = JSON.parse(document.getElementById('state').textContent);
 const app = document.getElementById('app');
 const LS = 'dabogi.v1';
+/* 테스트용 기기 기록 지우기: 주소 끝에 #reset */
+if(location.hash==='#reset'){try{if(confirm('이 기기에 저장된 블라인드 테스트·오답노트 기록을 모두 지울까요? (구글 시트 기록은 그대로예요)')){localStorage.removeItem('dabogi.v1');localStorage.removeItem('dabogi.queue');alert('이 기기의 기록을 지웠어요.')}}catch(e){}history.replaceState(null,'',location.pathname)}
 let prog = {}; try{ prog = JSON.parse(localStorage.getItem(LS)||'{}')||{} }catch(e){ prog={} }
 const saveProg=()=>{ try{ localStorage.setItem(LS, JSON.stringify(prog)) }catch(e){} };
 let view = {mode:'student', exam:null};
