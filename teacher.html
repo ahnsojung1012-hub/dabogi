@@ -120,6 +120,13 @@ th,td{text-align:left;padding:7px 8px;border-top:1px solid var(--line);vertical-
 .opt input:checked+span{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
 .opt input:focus-visible+span{outline:2px solid var(--blue);outline-offset:2px}
 .rbtns{display:flex;gap:4px;flex-wrap:nowrap}.kbtn{background:#fee500!important;color:#191600!important;border-color:#fee500!important}
+.wtabs{display:flex;gap:4px;border-bottom:2px solid var(--line,#e3e8ee);margin:2px 0 4px}.wtabs button{font:inherit;font-weight:700;background:none;border:0;padding:9px 14px;color:#6b7785;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}.wtabs button[aria-selected="true"]{color:#13283b;border-bottom-color:#00abff}
+.wpanel{display:flex;flex-direction:column;gap:18px}.wsec h3{margin:0;font-size:16px}
+.wqgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:10px}
+.wq{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;color:#1b1b1b}.wq img{width:100%;height:auto;border-top:1px solid #f0f0f0;padding-top:6px}
+.wq-h{display:flex;gap:8px;align-items:center}.wq-n{flex:none;background:#ff8a00;color:#fff;font-weight:700;font-size:13px;border-radius:6px;padding:2px 8px}.wq-h b{font-size:14px}
+.wq-s{font-size:13px;color:#555}.wq-c{color:#e57a00;font-size:16px}.wq-who{display:flex;flex-wrap:wrap;gap:4px}.wq-who span{background:#fff3e6;color:#9a4f00;border-radius:999px;padding:2px 8px;font-size:12px}.wq-who small{opacity:.75}
+.wq-r{font-size:13px;border-top:1px dashed #eee;padding-top:5px}.wq-r s{color:#c0392b;font-weight:700}.wq-r em{font-style:normal;font-size:11px;font-weight:700;color:#c0392b;background:#fdecea;border-radius:999px;padding:1px 7px;margin-left:6px}.wq-r p{margin:2px 0 0;color:#444}
 </style>
 </head>
 <body>
@@ -414,6 +421,39 @@ async function makeReportPdf(c,n,e,btn){
 }
 function fmtT(t){if(!t)return '-';const d=new Date(t);return `${d.getMonth()+1}.${d.getDate()} ${hm(t)}`}
 
+
+/* ---------- 틀린 문제 보기 ---------- */
+const imgOf=(id,q,st)=>`exams/${encodeURIComponent(id)}/${String(q-st+1).padStart(2,'0')}.jpg`;
+function tabBar(det,labels,onPick){const bar=h(`<div class="wtabs" role="tablist">${labels.map((l,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}">${l}</button>`).join('')}</div>`);
+  bar.onclick=e=>{const b=e.target.closest('button');if(!b)return;bar.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));onPick(+b.dataset.i)};return bar}
+function attachWrongTab(det,build){
+  const head=det.firstElementChild,panel=h(`<div class="wpanel" hidden></div>`);let built=false;
+  const bar=tabBar(det,['기록','틀린 문제 보기'],async i=>{[...det.children].forEach(ch=>{if(ch!==head&&ch!==bar&&ch!==panel)ch.hidden=i===1});panel.hidden=i!==1;
+    if(i===1&&!built){built=true;panel.innerHTML='<p class="hint">불러오는 중…</p>';const CC=await getConcepts();panel.innerHTML='';build(panel,CC)}});
+  head.after(bar);det.appendChild(panel)}
+function wrongCard(id,q,CC,body){const cc=CC[id]||{},st=cc.start||1;
+  return `<div class="wq"><div class="wq-h"><span class="wq-n">${q}번</span><b>${esc((cc.concepts||[])[q-st]||'')}</b></div>${body}<img loading="lazy" src="${imgOf(id,q,st)}" alt="${q}번 문제" onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'hint',textContent:'문제 그림이 없어요'}))"></div>`}
+function buildStudentWrong(panel,rec,CC){
+  const ex=rec.exams.filter(e=>e.wq&&Object.keys(e.wq).length);
+  if(!ex.length){panel.innerHTML='<p class="hint">이 기간에 틀린 문제가 없어요.</p>';return}
+  ex.forEach(e=>{const qs=Object.keys(e.wq).map(Number).sort((a,b)=>a-b);
+    const sec=h(`<section class="wsec"><div class="row" style="justify-content:space-between"><h3>${esc(e.title)}</h3><span class="hint">${e.done?`${e.attempts}회 만에 완료`:'진행 중'} · 틀렸던 문제 ${qs.length}개</span></div><div class="wqgrid"></div></section>`);
+    sec.querySelector('.wqgrid').innerHTML=qs.map(q=>{const rs=e.wq[q].sort((a,b)=>a-b),W=(e.why||{})[q];
+      const status=e.done?`${rs.join('·')}차에 틀림 → ${rs[rs.length-1]+1}차에 고침`:`${rs.join('·')}차에 틀림${rs[rs.length-1]>=e.attempts?' · 아직 못 고침':''}`;
+      const why=W&&W.rounds?W.rounds.map(r=>`<div class="wq-r"><span>${r.r}차 내 답 <s>${esc(r.v||'빈칸')}</s></span>${r.ty?`<em>${esc(r.ty)}</em>`:''}${r.re?`<p>${esc(r.re)}</p>`:''}</div>`).join(''):'';
+      return wrongCard(e.id,q,CC,`<div class="wq-s">${status}</div>${why}`)}).join('');
+    panel.appendChild(sec)})}
+function buildClassWrong(panel,mem,recs,CC){
+  const agg={};
+  mem.forEach(r=>{const rec=recs[key(r.cls,r.name)];if(!rec)return;rec.exams.forEach(e=>{if(!e.wq)return;const A=agg[e.id]=agg[e.id]||{title:e.title,q:{},people:new Set()};A.people.add(r.name);
+    Object.entries(e.wq).forEach(([q,rs])=>{(A.q[q]=A.q[q]||[]).push({name:r.name,rs,fixed:!!e.done})})})});
+  mem.forEach(r=>{const rec=recs[key(r.cls,r.name)];if(rec)rec.exams.forEach(e=>{if(agg[e.id])agg[e.id].people.add(r.name)})});
+  const ids=Object.keys(agg);if(!ids.length){panel.innerHTML='<p class="hint">이 기간에 틀린 문제가 없어요.</p>';return}
+  panel.appendChild(h(`<p class="hint" style="margin:0">많이 틀린 문제부터 보여줘요. 이름 옆 숫자는 틀린 회차예요.</p>`));
+  ids.forEach(id=>{const A=agg[id],qs=Object.keys(A.q).map(Number).sort((a,b)=>A.q[b].length-A.q[a].length||a-b);
+    const sec=h(`<section class="wsec"><div class="row" style="justify-content:space-between"><h3>${esc(A.title)}</h3><span class="hint">푼 학생 ${A.people.size}명</span></div><div class="wqgrid"></div></section>`);
+    sec.querySelector('.wqgrid').innerHTML=qs.map(q=>{const L=A.q[q];return wrongCard(id,+q,CC,`<div class="wq-s"><b class="wq-c">${L.length}명</b> 틀림 <span class="hint">/ ${A.people.size}명</span></div><div class="wq-who">${L.map(x=>`<span>${esc(x.name)} <small>${x.rs.sort((a,b)=>a-b).join('·')}차${x.fixed?'':' · 진행 중'}</small></span>`).join('')}</div>`)}).join('');
+    panel.appendChild(sec)})}
 function studentRecord(c,n){
   const rows=DATA.rows.filter(r=>r.ev!=='note'&&String(r.cls)===String(c)&&String(r.name)===String(n)&&inRange(r.at)).sort((a,b)=>a.at-b.at);
   const sess={};
@@ -425,6 +465,7 @@ function studentRecord(c,n){
     e.first=Math.min(e.first,r.at);e.last=Math.max(e.last,r.at);
     if(r.ev==='attempt'||r.ev==='done'){e.attempts=Math.max(e.attempts,Number(r.attempt)||0);if(Number(r.attempt)===1)e.firstWrong=Number(r.wrongCount)||0}
     if(r.ev==='done'){e.done=r.at;const x=J(r.extra);if(x&&x.runSec)e.runSec=x.runSec;if(x)e.dx=x}
+    if(r.ev==='attempt'&&r.wrong){String(r.wrong).split(',').map(x=>parseInt(x,10)).filter(Boolean).forEach(q=>{const a=(e.wq=e.wq||{})[q]=(e.wq[q]||[]);if(!a.includes(+r.attempt))a.push(+r.attempt)})}
     if(r.ev==='why'){const x=J(r.extra);if(x&&x.q){(e.why=e.why||{})[x.q]=x}}
     if(r.ev==='report'){const x=J(r.extra);if(x&&x.tally)e.tally=x.tally;e.everWrong=r.wrong}});
   sessions.forEach(s=>{if(exams[s.examId])exams[s.examId].time+=s.active});
@@ -485,6 +526,7 @@ function renderClass(det,c,mem,recs){
     return `<tr data-k="${esc(key(r.cls,r.name))}" tabindex="0"><td><b>${esc(r.name)}</b></td><td>${rec.rows.length?Object.keys(rec.days).length+'일':'-'}</td><td>${rec.rows.length?dur(rec.total):'<span class="hint">기록 없음</span>'}</td><td>${d.length} / ${rec.exams.length}</td><td>${avg}</td><td>${rec.last?md(rec.last)+' '+hm(rec.last):'-'}</td></tr>`}).join('')}</tbody></table></div>
   <p class="hint" style="margin:0">학생 이름을 누르면 그 학생의 자세한 기록과 학부모 요약문이 나와요.</p>`;
   det.querySelectorAll('tr[data-k]').forEach(tr=>{const go=()=>{sel=tr.dataset.k;renderMain()};tr.onclick=go;tr.onkeydown=e=>{if(e.key==='Enter')go()}});
+  attachWrongTab(det,(panel,CC)=>buildClassWrong(panel,mem,recs,CC));
 }
 
 function dayStrip(rec){const out=[];const a=new Date(from+'T00:00'),b=new Date(to+'T00:00');
@@ -504,6 +546,7 @@ function renderDetail(det,c,n,rec){
   <div><div class="label" style="margin-bottom:6px">공부한 순서대로</div><div class="timeline"></div></div>
   <div class="field"><label class="label" for="pmsg">학부모님께 보낼 요약문</label><div class="row"><input type="text" id="acad" placeholder="학원 이름" value="${esc(ls.get('dabogi.t.acad','페르마 수학학원'))}" style="flex:1 1 200px"><input type="text" id="cmt" placeholder="선생님 한마디 (선택)" style="flex:2 1 260px"></div>
   <div class="opts" id="opts"><span class="lbl">요약문에 넣을 내용 · 체크한 것만 들어가요</span>${OPTS.map(o=>`<label class="opt"><input type="checkbox" data-k="${o[0]}" ${popt[o[0]]?'checked':''}><span>${o[1]}</span></label>`).join('')}</div><textarea id="pmsg"></textarea><div class="row"><button class="btn" id="copy">요약문 복사</button><button class="btn kbtn" id="ksum">요약문 카카오톡 보내기</button><span class="hint">복사한 뒤 카카오톡이나 문자에 붙여 넣으세요. 보내기 전에 내용을 고쳐도 돼요.</span></div></div>`;
+  attachWrongTab(det,(panel,CC)=>buildStudentWrong(panel,rec,CC));
   det.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>makeReportPdf(c,n,rec.exams.find(e=>e.id===b.dataset.rep),b));
   det.querySelectorAll('[data-kak]').forEach(b=>b.onclick=()=>kakaoResult(c,n,rec.exams.find(e=>e.id===b.dataset.kak)));
   det.querySelector('#ksum').onclick=()=>kakaoText(det.querySelector('#pmsg').value);
