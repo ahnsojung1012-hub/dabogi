@@ -202,7 +202,7 @@ const canvasJpeg=cv=>{const d=atob(cv.toDataURL('image/jpeg',.88).split(',')[1])
 function saveBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
 const loadImg=src=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src});
 function decSel(s){const out=[];String(s||'').split('|').forEach(g=>{const[k,ns]=g.split(':');if(k&&ns)ns.split('.').forEach(n=>out.push(k+':'+n))});return out}
-function notesOf(c,n){return DATA.rows.filter(r=>r.ev==='note'&&String(r.cls)===String(c)&&String(r.name)===String(n)).map(r=>{const x=J(r.extra)||{};return {at:r.at,book:x.b||r.examId,title:r.examTitle,keys:decSel(x.s)}}).sort((a,b)=>b.at-a.at)}
+function notesOf(c,n){return DATA.rows.filter(r=>r.ev==='note'&&String(r.cls)===String(c)&&String(r.name)===String(n)).map(r=>{const x=J(r.extra)||{};const bt=String(x.bt||'').split('|').filter(Boolean).map(t=>{const i=t.indexOf('=');const[e,q]=t.slice(0,i).split(':');return {e,q:+q,a:t.slice(i+1)}}).filter(b=>b.e&&b.q);return {at:r.at,book:x.b||r.examId,title:r.examTitle,keys:decSel(x.s),bt}}).sort((a,b)=>b.at-a.at)}
 function ansText(a){return String(a||'').replace(/\{([^}]+)\}/g,'$1')}
 async function makeNotePdf(c,n,note,btn,mode){
   const WANT_Q=mode!=='a',WANT_A=mode!=='q';
@@ -213,6 +213,8 @@ async function makeNotePdf(c,n,note,btn,mode){
     const book=books.find(b=>b.id===note.book);if(!book)throw new Error('book');
     const ks=new Set(note.keys),items=[];
     book.sets.forEach(s=>s.items.forEach(([no,page,w,hh])=>{if(ks.has(s.key+':'+no))items.push({s,no,page,src:`notes/${book.id}/${s.key}/${no}.jpg`,ans:(book.answers||{})[s.key+':'+no]||''})}));
+    if((note.bt||[]).length){const CC=await getConcepts();note.bt.forEach(b=>{const cc=CC[b.e]||{},st=cc.start||1;const tt=cc.title||b.e;
+      items.push({s:{title:'블라인드 테스트 · '+tt},no:b.q,page:'',pill:`${tt} ${b.q}번`,src:`exams/${encodeURIComponent(b.e)}/${String(b.q-st+1).padStart(2,'0')}.jpg`,ans:/^[1-5](,[1-5])*$/.test(b.a)?b.a.split(',').map(d=>'①②③④⑤'[d-1]).join(', '):b.a})})}
     /* 매쓰플랫 시험지 모양: 위쪽 파란 띠, 왼쪽 파란 탭, 큰 파란 번호, 2단, 아래 쪽번호와 파란 선 */
     const PW=1240,PH=1754,M=62,CW=PW-2*M,BLUE='#00abff',INK='#1b1b1b',GRAY='#7c7c7c',LINE='#e3e3e3',SKY='#9fdcfb';
     const FONT='"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
@@ -249,8 +251,8 @@ async function makeNotePdf(c,n,note,btn,mode){
       if(y+blockH>BOTTOM&&y>top){if(col===0){col=1;y=top}else{divider();newPage(false);col=0}}
       const cx=colX();
       /* 문제 위: 몇 쪽 몇 번인지 (원래 시험지의 단원·정답률 줄 자리) */
-      x.font=`bold 19px ${FONT}`;const pill=`${it.page}쪽 ${it.no}번`;const pw=x.measureText(pill).width+20;
-      x.fillStyle=BLUE;rrect(cx,y,pw,30,6);x.fill();x.fillStyle='#fff';x.fillText(pill,cx+10,y+22);
+      x.font=`bold 19px ${FONT}`;const pill=it.pill||`${it.page}쪽 ${it.no}번`;const pw=x.measureText(pill).width+20;
+      x.fillStyle=it.pill?'#ff8a00':BLUE;rrect(cx,y,pw,30,6);x.fill();x.fillStyle='#fff';x.fillText(pill,cx+10,y+22);
       x.fillStyle=GRAY;x.font=`18px ${FONT}`;let lab=`| ${it.s.title}`;while(x.measureText(lab).width>COLW-pw-14&&lab.length>4)lab=lab.slice(0,-2)+'…';x.fillText(lab,cx+pw+10,y+22);
       y+=44;
       x.fillStyle=BLUE;x.font=`bold 46px ${FONT}`;x.fillText(pad2(i+1),cx,y+40);
@@ -268,7 +270,7 @@ async function makeNotePdf(c,n,note,btn,mode){
       if(y+hRow>BOTTOM){x.fillStyle='#333';x.fillRect(M,y,CW,2.5);newPage(false);y+=10;x.fillStyle='#333';x.fillRect(M,y,CW,2.5)}
       row.forEach((lines,k)=>{const it=items[i+k],cx=M+k*cw;
         x.fillStyle=BLUE;x.font=`bold 25px ${FONT}`;x.fillText(pad2(i+k+1),cx+14,y+40);
-        x.fillStyle=GRAY;x.font=`15px ${FONT}`;x.fillText(`${it.page}쪽 ${it.no}번`,cx+14,y+62);
+        x.fillStyle=GRAY;x.font=`15px ${FONT}`;x.fillText(it.pill||`${it.page}쪽 ${it.no}번`,cx+14,y+62);
         x.fillStyle=INK;x.font=`25px ${FONT}`;lines.forEach((l,j)=>x.fillText(l,cx+104,y+40+j*LH));
         if(k)x.fillStyle='#d0d0d0',x.fillRect(cx,y,1.5,hRow)});
       y+=hRow;x.fillStyle='#d0d0d0';x.fillRect(M,y,CW,1.5)}
@@ -552,7 +554,7 @@ function renderDetail(det,c,n,rec){
   det.querySelector('#ksum').onclick=()=>kakaoText(det.querySelector('#pmsg').value);
   const nl=det.querySelector('#notelist'),nts=notesOf(c,n);
   if(!nts.length)nl.innerHTML='<p class="hint" style="margin:0">아직 만든 오답노트가 없어요.</p>';
-  nts.forEach(nt=>{const it=h(`<div class="titem"><div><strong>${md(nt.at)} ${hm(nt.at)}</strong> <span class="hint">${esc(nt.title)} · ${nt.keys.length}문제</span></div><div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn small" data-m="q">문제지 PDF</button><button class="btn small ghost" data-m="a">빠른정답 PDF</button></div></div>`);
+  nts.forEach(nt=>{const it=h(`<div class="titem"><div><strong>${md(nt.at)} ${hm(nt.at)}</strong> <span class="hint">${esc(nt.title)} · ${nt.keys.length+(nt.bt||[]).length}문제${(nt.bt||[]).length?` (블라인드 ${nt.bt.length}개 포함)`:''}</span></div><div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn small" data-m="q">문제지 PDF</button><button class="btn small ghost" data-m="a">빠른정답 PDF</button></div></div>`);
     it.querySelectorAll('button').forEach(b=>b.onclick=e=>makeNotePdf(c,n,nt,e.currentTarget,b.dataset.m));nl.appendChild(it)});
   const tl=det.querySelector('.timeline');const byDay={};
   rec.sessions.forEach(s=>{(byDay[ymd(s.start)]=byDay[ymd(s.start)]||[]).push(s)});

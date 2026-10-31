@@ -9,7 +9,7 @@ const exams = Object.entries(pages).map(([file, p]) => {
   const meta = typeof p === 'string' ? { id: p } : p;
   const ex = state.exams.find(e => e.id === meta.id);
   if (!ex || ex.sample || meta.hidden) return null;
-  return { id: ex.id, title: ex.title, grade: meta.grade || ex.grade || null, n: ex.hashes.length, np: ex.images.length, link: file + '?v=' + v, who: ex.who, hideFor: ex.hideFor };
+  return { id: ex.id, title: ex.title, grade: meta.grade || ex.grade || null, n: ex.hashes.length, np: ex.images.length, link: file + '?v=' + v, who: ex.who, hideFor: ex.hideFor, types: ex.types, start: ex.start, pageLabel: ex.pageLabel };
 }).filter(Boolean);
 let tpl = fs.readFileSync(__dirname + '/template.html', 'utf8');
 const json = JSON.stringify({ exams, studentOnly: true, hub: true, v, endpoint: cfg.endpoint || '', roster }).replace(/</g, '\\u003c');
